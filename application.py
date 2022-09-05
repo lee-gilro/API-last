@@ -126,7 +126,7 @@ async def test():
             
             
             massage = {
-                'status' : 'True',
+                'status' : True,
                 'message' : 'Successfully UPDATED'
             }
             respone = jsonify(massage)
@@ -136,7 +136,7 @@ async def test():
             return showMessage()
     except Exception as e:
         massage = {
-                'status' : 'False',
+                'status' : False,
                 'message' : 'Failed UPDATED'
             }
         respone = jsonify(massage)
