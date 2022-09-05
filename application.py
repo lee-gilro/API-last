@@ -123,13 +123,24 @@ async def test():
             cursor.execute(sqlQuery_1, bindData_1)
             conn.commit()
             
-            respone = jsonify('successfully UPDATED')
+            
+            
+            massage = {
+                'status' : 'True',
+                'message' : 'Successfully UPDATED'
+            }
+            respone = jsonify(massage)
             respone.status_code = 200
             return respone
         else:
             return showMessage()
     except Exception as e:
-        respone = jsonify('UPDATE failed')
+        massage = {
+                'status' : 'False',
+                'message' : 'Failed UPDATED'
+            }
+        respone = jsonify(massage)
+        respone.status_code = 200
         conn.rollback()
         print(e)
     finally:
