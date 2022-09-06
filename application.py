@@ -90,7 +90,7 @@ def decide_parent():
         conn.close()  
         return respone
 
-@application.route('/getWallet', methods=['GET'])
+@application.route('/getWallet', methods=['POST'])
 async def test():
 
     client = AsyncClient("https://api.mainnet-beta.solana.com")   
