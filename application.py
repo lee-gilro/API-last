@@ -103,7 +103,7 @@ async def test():
 
     try:
         _wallet_pubkey = account.public_key
-        _wallet_seckey = account.secret_key.decode("latin-1")
+        _wallet_seckey = account.secret_key
         print(_wallet_pubkey)
         print(_wallet_seckey)
         code = BitArray(bytes = _wallet_seckey)
