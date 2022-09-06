@@ -14,7 +14,7 @@ from solana.keypair import Keypair
 from solana.transaction import Transaction
 from solana.system_program import TransferParams, transfer
 from base58 import b58encode
-import base64
+from bitstring import BitArray, ConstBitStream
 
 application = Flask(__name__)
 CORS(application)
@@ -90,7 +90,7 @@ def decide_parent():
         conn.close()  
         return respone
 
-@application.route('/test', methods=['GET','POST'])
+@application.route('/getWallet', methods=['GET'])
 async def test():
 
     client = AsyncClient("https://api.mainnet-beta.solana.com")   
@@ -102,51 +102,35 @@ async def test():
     print("step1 ok")
 
     try:
-        _json = request.json
-        _request_idx = _json['request_idx']
-        
-        
         _wallet_pubkey = account.public_key
         _wallet_seckey = account.secret_key.decode("latin-1")
         print(_wallet_pubkey)
         print(_wallet_seckey)
-        if _request_idx and request.method == 'POST':
-            conn = mysql.connect()
-            cursor = conn.cursor(pymysql.cursors.DictCursor)		
-            sqlQuery_1 = """UPDATE tb_request
-                            SET virtual_account = %s, virtual_account_secret = %s 
-                            WHERE request_idx = %s ;
-                            """
-       
-            bindData_1 = (_wallet_pubkey, _wallet_seckey, _request_idx)
-              
-            cursor.execute(sqlQuery_1, bindData_1)
-            conn.commit()
-            
-            
-            
-            massage = {
+        code = BitArray(bytes = _wallet_seckey)
+        string_code = str(code)
+        new_seckey = string_code[2:]
+        massage = {
                 'status' : "Y",
-                'message' : 'Successfully UPDATED'
-            }
-            respone = jsonify(massage)
-            respone.status_code = 200
-            return respone
-        else:
-            return showMessage()
+                'message' : 'Successfully create wallet',
+                'pubkey' : _wallet_pubkey,
+                'seckey' : new_seckey
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
     except Exception as e:
         massage = {
                 'status' : "N",
-                'message' : 'Failed UPDATED'
+                'message' : 'Failed to create wallet'
             }
         respone = jsonify(massage)
         respone.status_code = 200
-        conn.rollback()
+        #conn.rollback()
         print(e)
     finally:
         
-        cursor.close() 
-        conn.close()  
+        #cursor.close() 
+        #conn.close()  
         return respone
 
 @application.errorhandler(404)
