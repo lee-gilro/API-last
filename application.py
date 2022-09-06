@@ -108,11 +108,13 @@ async def test():
         print(_wallet_seckey)
         code = BitArray(bytes = _wallet_seckey)
         string_code = str(code)
+
+        new_pubkey = str(_wallet_pubkey)
         new_seckey = string_code[2:]
         massage = {
                 'status' : "Y",
                 'message' : 'Successfully create wallet',
-                'pubkey' : _wallet_pubkey,
+                'pubkey' : new_pubkey,
                 'seckey' : new_seckey
                 }
         respone = jsonify(massage)
