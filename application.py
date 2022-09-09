@@ -98,7 +98,7 @@ def end_mining():
     try:        
         _json = request.json
         _mining_idx = _json["mining_idx"]
-        
+        #맴버 idx 까지 받아서 2차검증필요
 
         if _mining_idx and request.method == 'POST':
             conn = mysql.connect()
@@ -111,19 +111,19 @@ def end_mining():
                             WHERE x.mining_idx = %s;"""
                                         
             sqlQuery_1 = """UPDATE tb_mining
-                            SET end_ut = UNIX_TIMESTAMP(NOW()),
+                            SET end_uttm = UNIX_TIMESTAMP(NOW()),
                                 mineral_amount = %s,
                                 total_working_time = %s
                             WHERE mining_idx = %s;"""
             sqlQuery_2 = """UPDATE tb_robot
                             SET working_yn = 2,
                                 update_dt = FROM_UNIXTIME(UNIX_TIMESTAMP(NOW())),
-                                update_ut = UNIX_TIMESTAMP(NOW())
+                                update_uttm = UNIX_TIMESTAMP(NOW())
                             WHERE robot_idx = %s"""
-            sqlQuery_3 = """INSERT INTO tb_mineral(member_idx, mineral_amount, mineral_from_mining, update_ut, update_dt) 
+            sqlQuery_3 = """INSERT INTO tb_mineral(member_idx, mineral_amount, mineral_from_mining, update_uttm, update_dt) 
                             VALUES(%s, %s, %s,UNIX_TIMESTAMP(NOW()), FROM_UNIXTIME(UNIX_TIMESTAMP(NOW())))
                             ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s, mineral_from_mining = mineral_from_mining + %s ;"""
-            sqlQuery_4 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_ut, create_dt, type) 
+            sqlQuery_4 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_uttm, create_dt, type) 
                             VALUES(%s, %s, %s, UNIX_TIMESTAMP(NOW()), FROM_UNIXTIME(UNIX_TIMESTAMP(NOW())), %s);"""
 
 
@@ -132,7 +132,7 @@ def end_mining():
             Rows = cursor.fetchone()
             
             
-            _start_ut = Rows["start_ut"]
+            _start_ut = Rows["start_uttm"]
             _working_yn = Rows["working_yn"]
             _robot_member_idx = Rows["robot_member_idx"]
             _robot_idx = Rows["robot_idx"]
@@ -193,6 +193,7 @@ def end_mining():
 
 @application.route('/test_1', methods=['POST'])
 def start_mining():
+    #맴버 idx 까지 받아서 2차검증필요
     try:        
         _json = request.json
         _robot_idx = _json['robot_idx']
@@ -207,17 +208,17 @@ def start_mining():
                             ON x.robot_member_idx = y.owner_idx 
                             WHERE x.robot_idx = %s"""
             
-            sqlQuery_1 = """INSERT INTO tb_mining(member_idx, robot_idx, start_dt, start_ut) 
+            sqlQuery_1 = """INSERT INTO tb_mining(member_idx, robot_idx, start_dt, start_uttm) 
                             VALUES(%s, %s, FROM_UNIXTIME(UNIX_TIMESTAMP(NOW())),UNIX_TIMESTAMP(NOW()))
                             ;"""
 
             sqlQuery_1_1 = """SELECT LAST_INSERT_ID() as mining_idx"""
-            sqlQuery_2 = """INSERT INTO tb_mining_rel(member_idx, robot_idx, mining_idx, start_ut, land_idx) 
+            sqlQuery_2 = """INSERT INTO tb_mining_rel(member_idx, robot_idx, mining_idx, start_uttm, land_idx) 
                             VALUES(%s, %s, %s, UNIX_TIMESTAMP(NOW()), %s);"""
             sqlQuery_3 = """UPDATE tb_robot
                             SET working_yn = 1,
                                 update_dt = FROM_UNIXTIME(UNIX_TIMESTAMP(NOW())),
-                                update_ut = UNIX_TIMESTAMP(NOW())
+                                update_uttm = UNIX_TIMESTAMP(NOW())
                             WHERE robot_idx = %s ;"""
             bindData_0 = (_robot_idx)
             cursor.execute(sqlQuery_0, bindData_0)
@@ -225,7 +226,7 @@ def start_mining():
 
             _robot_member_idx = Rows['robot_member_idx']
             _working_yn = Rows['working_yn']
-            _update_ut = Rows['update_ut']
+            _update_ut = Rows['update_uttm']
             _land_idx = Rows["land_idx"]
             
 
