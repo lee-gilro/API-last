@@ -13,8 +13,8 @@ import requests
 import json
 import time
 from datetime import date, datetime
+from bitstring import BitArray
 import ast
-
 
 application = Flask(__name__)
 CORS(application)
@@ -90,8 +90,8 @@ def decide_parent():
         conn.close()  
         return respone
 
-@application.route('/getWallet_sol', methods=['GET','POST'])
-async def getWallet_sol():
+@application.route('/getWallet_sol', methods=['POST'])
+async def test():
 
     client = AsyncClient("https://api.mainnet-beta.solana.com")   
     account = Keypair().generate()
@@ -102,30 +102,28 @@ async def getWallet_sol():
     print("step1 ok")
 
     try:
-        _json = request.json
-        _request_idx = _json['request_idx']
-        
-        
         _wallet_pubkey = account.public_key
-        _wallet_seckey = account.secret_key.decode("latin-1")
+        _wallet_seckey = account.secret_key
         print(_wallet_pubkey)
         print(_wallet_seckey)
-        if _request_idx and request.method == 'POST':
-            
-            massage = {
+        code = BitArray(bytes = _wallet_seckey)
+        string_code = str(code)
+
+        new_pubkey = str(_wallet_pubkey)
+        new_seckey = string_code[2:]
+        massage = {
                 'status' : "Y",
-                'pubkey' : _wallet_pubkey,
-                "seckey" : _wallet_seckey
-            }
-            respone = jsonify(massage)
-            respone.status_code = 200
-            
-        else:
-            return showMessage()
+                'message' : 'Successfully create wallet',
+                'pubkey' : new_pubkey,
+                'seckey' : new_seckey
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
     except Exception as e:
         massage = {
                 'status' : "N",
-                'message' : 'Failed UPDATED'
+                'message' : 'Failed to create wallet'
             }
         respone = jsonify(massage)
         respone.status_code = 200
