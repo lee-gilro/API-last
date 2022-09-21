@@ -91,7 +91,7 @@ def decide_parent():
         return respone
 
 @application.route('/getWallet_sol', methods=['GET','POST'])
-async def test():
+async def getWallet_sol():
 
     client = AsyncClient("https://api.mainnet-beta.solana.com")   
     account = Keypair().generate()
@@ -111,27 +111,15 @@ async def test():
         print(_wallet_pubkey)
         print(_wallet_seckey)
         if _request_idx and request.method == 'POST':
-            conn = mysql.connect()
-            cursor = conn.cursor(pymysql.cursors.DictCursor)		
-            sqlQuery_1 = """UPDATE tb_request
-                            SET virtual_account = %s, virtual_account_secret = %s 
-                            WHERE request_idx = %s ;
-                            """
-       
-            bindData_1 = (_wallet_pubkey, _wallet_seckey, _request_idx)
-              
-            cursor.execute(sqlQuery_1, bindData_1)
-            conn.commit()
-            
-            
             
             massage = {
                 'status' : "Y",
-                'message' : 'Successfully UPDATED'
+                'pubkey' : _wallet_pubkey,
+                "seckey" : _wallet_seckey
             }
             respone = jsonify(massage)
             respone.status_code = 200
-            return respone
+            
         else:
             return showMessage()
     except Exception as e:
