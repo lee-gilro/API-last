@@ -16,21 +16,6 @@ from datetime import date, datetime
 import ast
 
 
-url = "https://node-api.klaytnapi.com/v1/klaytn"
-payload = json.dumps({
-  "jsonrpc": "2.0",
-  "method": "klay_blockNumber",
-  "params": [],
-  "id": 73
-})
-headers = {
-  'x-chain-id': '1001',
-  'Authorization': 'Basic ******************',
-  'Content-Type': 'application/json'
-}
-response = requests.request("POST", url, headers=headers, data=payload)
-print(response.text)
-
 application = Flask(__name__)
 CORS(application)
 mysql = MySQL()
