@@ -1,27 +1,19 @@
-from bdb import effective
 from email.mime import application
-from tokenize import group
 from urllib import response
 import pymysql
 from flask import jsonify
 from flask import Flask
-from flask import flash, request
+from flask import request
 from flaskext.mysql import MySQL
 from flask_cors import CORS, cross_origin
-import ast
 from solana.rpc.async_api import AsyncClient
-from solana.rpc.api import Client
 from solana.keypair import Keypair
-from solana.transaction import Transaction
-from solana.system_program import TransferParams, transfer
-from base58 import b58encode
-from bitstring import BitArray, ConstBitStream
 import time
-from datetime import date, datetime
 import requests
 import json
-from eth_account import Account
-import secrets
+import time
+from datetime import date, datetime
+import ast
 
 
 url = "https://node-api.klaytnapi.com/v1/klaytn"
@@ -48,6 +40,7 @@ application.config['MYSQL_DATABASE_DB'] = 'msx'
 application.config['MYSQL_DATABASE_HOST'] = 'p2pservice-rds-prod.cf219cl1yo7q.ap-northeast-2.rds.amazonaws.com'
 application.config['MYSQL_DATABASE_PORT'] = 3306
 mysql.init_app(application)
+
 
 
 @application.route('/referralAllowance', methods=['POST'])
@@ -209,27 +202,7 @@ async def getwallet_klay():
     finally:
         return respone
     
-@application.route('/getWallet_usdt', methods=['GET','POST'])
-async def getwallet_usdt():
-    try:
-        priv = secrets.token_hex(32)
-        private_key = "0x" + priv
-        #print ("SAVE BUT DO NOT SHARE THIS:", private_key)
-        acct = Account.from_key(private_key)
-        #print("Address:", acct.address)
-        respone = jsonify({
-            "private_key" : private_key,
-            "address" : acct.address
-        })
-        respone.status_code = 200
-    except Exception as e:
-        
-        respone =jsonify('ERROR ')
-        respone.status_code = 200
-        print(e)
-    
-    finally:
-        return respone
+
 
 @application.route('/settlement', methods=['POST'])
 def settlement():
