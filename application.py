@@ -27,6 +27,20 @@ application.config['MYSQL_DATABASE_PORT'] = 3306
 mysql.init_app(application)
 
 
+@application.route('/', methods=['POST','GET'])
+def root():
+    try:        
+        
+        respone = jsonify('successfully UPDATED')
+        respone.status_code = 200
+        
+        
+    except Exception as e:
+        respone = jsonify('there is an error')
+        return respone
+    finally:
+        return respone  
+
 
 @application.route('/referralAllowance', methods=['POST'])
 def ref_allowance():
