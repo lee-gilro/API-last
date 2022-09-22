@@ -175,9 +175,11 @@ async def getwallet_klay():
         mydata = ast.literal_eval(dict_str)
         sp_mydata = mydata["keyId"].split(':')[6]
         respone = jsonify({
-            "address" : mydata["address"],
-            "keyId" : sp_mydata,
-            "publicKey" : mydata["publicKey"] 
+            "pubkey" : mydata["address"],
+            "seckey" : sp_mydata,
+            "publicKey" : mydata["publicKey"],
+            "status" : "Y",
+            "message": "Successfully create wallet" 
         })
         print(response.text)
     except Exception as e:
@@ -198,8 +200,10 @@ async def getwallet_usdt():
         acct = Account.from_key(private_key)
         #print("Address:", acct.address)
         respone = jsonify({
-            "private_key" : private_key,
-            "address" : acct.address
+            "seckey" : private_key,
+            "pubkey" : acct.address,
+            "status" : "Y",
+            "message": "Successfully create wallet"
         })
         respone.status_code = 200
     except Exception as e:
