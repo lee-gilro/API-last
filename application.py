@@ -15,6 +15,8 @@ import time
 from datetime import date, datetime
 from bitstring import BitArray
 import ast
+from eth_account import Account
+import secrets
 
 application = Flask(__name__)
 CORS(application)
@@ -187,7 +189,27 @@ async def getwallet_klay():
     finally:
         return respone
     
-
+@application.route('/getWallet_usdt', methods=['GET','POST'])
+async def getwallet_usdt():
+    try:
+        priv = secrets.token_hex(32)
+        private_key = "0x" + priv
+        #print ("SAVE BUT DO NOT SHARE THIS:", private_key)
+        acct = Account.from_key(private_key)
+        #print("Address:", acct.address)
+        respone = jsonify({
+            "private_key" : private_key,
+            "address" : acct.address
+        })
+        respone.status_code = 200
+    except Exception as e:
+        
+        respone =jsonify('ERROR ')
+        respone.status_code = 200
+        print(e)
+    
+    finally:
+        return respone
 
 @application.route('/settlement', methods=['POST'])
 def settlement():
