@@ -17,6 +17,10 @@ from bitstring import BitArray
 import ast
 from eth_account import Account
 import secrets
+import asyncio
+from solana.publickey import PublicKey
+
+
 
 application = Flask(__name__)
 CORS(application)
@@ -215,6 +219,101 @@ async def getwallet_usdt():
     finally:
         return respone
 
+@application.route('/check_klay', methods=['GET','POST'])
+async def check_klay():
+    try:
+        _json = request.json
+        _pubkey = _json["public_key"]
+        
+
+        url = "https://node-api.klaytnapi.com/v1/klaytn"
+        payload = json.dumps({
+        "jsonrpc": "2.0",
+        "method": "klay_getAccount",
+        "params": [_pubkey, "latest"],
+        "id": 1
+        })
+        headers = {
+        'x-chain-id': '8217',
+        'Authorization': 'Basic S0FTS1FTQjU4RVlONU1PTlFEOEFMUFdEOllQSDhieG5XeVd3eFJIVkt2VmR4aW1YM3M5Q0JEM3lLdHdtbXJ3Vno=',
+        'Content-Type': 'application/json'
+        }
+        
+        response = requests.request("POST", url, headers=headers, data=payload)
+        #response.status_code = 200
+        byte_str = response.content
+        dict_str = byte_str.decode("utf-8")  
+        print(dict_str)
+        mydata = json.loads(dict_str)    
+        if mydata["result"]:
+            balance = (mydata["result"]["account"]["balance"])[2:]
+            print(balance)
+            up_bal_2 = ast.literal_eval(mydata["result"]["account"]["balance"])
+            print(up_bal_2)
+            print(round((up_bal_2)/(10^18)))
+            respone = jsonify({
+                "balance" : up_bal_2/1000000000000000000,
+                'status' : "Y",
+                'message' : 'Successfully check wallet'
+
+            })
+        else:
+            respone = jsonify({
+                "balance" : 0,
+                'status' : "Y",
+                'message' : 'Successfully check wallet'
+                })
+        
+    except Exception as e:
+        
+        respone =jsonify('ERROR ')
+        respone.status_code = 200
+        print(e)
+    
+    finally:
+        return respone
+    
+@application.route('/check_sol', methods=['POST'])
+async def check_sol():
+
+    _json = request.json
+    _pubkey = _json["public_key"]
+    client = AsyncClient("https://api.mainnet-beta.solana.com")   
+    lamport = 0.000000001
+    print("step0 ok")
+    balance = await asyncio.create_task(client.get_balance(PublicKey(_pubkey),"finalized"))
+    print(balance)
+
+    try:
+        
+        
+        massage = {
+                'status' : "Y",
+                'message' : 'Successfully check wallet',
+                "balance" : balance["result"]["value"] * lamport
+            
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+
+        await client.close()
+        return respone
+        
+    except Exception as e:
+        massage = {
+                'status' : "N",
+                'message' : 'Failed to check wallet'
+            }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        #conn.rollback()
+        print(e)
+    finally:
+        
+        #cursor.close() 
+        #conn.close()  
+        return respone
+
 @application.route('/settlement', methods=['POST'])
 def settlement():
     now_dt = datetime.now()
@@ -316,7 +415,7 @@ def settlement():
                             
                             r["refined_mineral"] = refined_mineral
                             
-                            temp_tuple_1 = (r["refined_mineral"], now_dt ,r["member_idx"])
+                            temp_tuple_1 = (r["refined_mineral"], now_dt , r["refined_mineral"] ,r["member_idx"])
                             temp_tuple_2 = (r["member_idx"], r["member_idx"], "settlement", r["refined_mineral"], now_uttm, now_dt, group_idx)
                             temp_tuple_3 = (r["refined_mineral"], r["refined_mineral"], now_dt, r["member_idx"])
                             result_list_1.append(temp_tuple_1)
@@ -332,7 +431,8 @@ def settlement():
                                 VALUES(%s, %s, %s, %s, %s, %s);"""
                     sqlQuery_3 = """UPDATE tb_point
                                     SET point = point + %s,
-                                        mod_dt = %s
+                                        mod_dt = %s,
+                                        get_point = get_point + %s
                                     WHERE member_idx = %s
                                                         ;"""
                     sqlQuery_4 = """INSERT INTO tb_point_history(member_idx, send_member_idx, point_cd, point, create_ut, create_dt, grp_idx) 
