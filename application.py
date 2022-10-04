@@ -558,7 +558,7 @@ def total_end_mining():
             respone.status_code = 200
         else:
             message = {
-                "status" : "N",
+                "status" : "Y",
                 "taskCnt" : 0
             }
             respone = jsonify(message)
@@ -637,7 +637,12 @@ def total_start_mining():
             respone = jsonify(message)
             respone.status_code = 200
         else:
-            respone = jsonify("There is no robot can working")
+            message = {
+                "status" : "Y",
+                "taskCnt" : 0
+            }
+            respone = jsonify(message)
+            respone.status_code = 200
     except Exception as e:
         conn.rollback()
         message = {
@@ -728,6 +733,7 @@ def end_mining():
             cursor.execute(sqlQuery_4,bindData_4)
             cursor.execute(sqlQuery_2,bindData_2)
             cursor.execute(sqlQuery_5,bindData_5)
+
 
             respone = jsonify("Success to end minining of robot_name : {0}".format(robot_name))
             respone.status_code = 200
