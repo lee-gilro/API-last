@@ -1,3 +1,4 @@
+from email import message
 from email.mime import application
 from urllib import response
 import pymysql
@@ -549,14 +550,26 @@ def total_end_mining():
             cursor.execute(sqlQuery_5,bindData_5)
             cursor.execute(sqlQuery_2,bindData_2)
 
-            respone = jsonify("Success to end minining {0}".format(cnt_robot))
+            message = {
+                "status" : "Y",
+                "taskCnt" : cnt_robot
+            }
+            respone = jsonify(message)
             respone.status_code = 200
         else:
-            respone = jsonify("There is no mining robots")
-
+            message = {
+                "status" : "N",
+                "taskCnt" : 0
+            }
+            respone = jsonify(message)
+            respone.status_code = 200
     except Exception as e:
         conn.rollback()
-        respone =jsonify('ERROR ')
+        message = {
+                "status" : "N",
+                "taskCnt" : 0
+            }
+        respone = jsonify(message)
         respone.status_code = 200
         print(e)
     finally:
@@ -617,14 +630,21 @@ def total_start_mining():
             cursor.executemany(sqlQuery_2,tb_mining_history_list)
             cursor.execute(sqlQuery_3,(start_dt, start_uttm, _member_idx))
 
-
-            respone = jsonify("Success to start minining {0}".format(cnt_robot))
+            message = {
+                "status" : "Y",
+                "taskCnt" : cnt_robot
+            }
+            respone = jsonify(message)
             respone.status_code = 200
         else:
             respone = jsonify("There is no robot can working")
     except Exception as e:
         conn.rollback()
-        respone =jsonify('ERROR ')
+        message = {
+                "status" : "N",
+                "taskCnt" : 0
+            }
+        respone =jsonify(message)
         respone.status_code = 200
         print(e)
     finally:
