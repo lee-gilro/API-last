@@ -487,75 +487,127 @@ def total_end_mining():
 
         conn = mysql.connect()
         cursor = conn.cursor(pymysql.cursors.DictCursor)
-        sqlQuery_0 = """SELECT * FROM tb_mining
+        sqlQuery_0 = """SELECT * FROM tb_mining a
+                        JOIN tb_land b
+                        ON a.member_idx = b.owner_idx
                         WHERE member_idx = %s"""
         bindData_0 = (_member_idx)
+        sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
+                                SET a.end_uttm = %s,
+                                    a.end_dt = %s,
+                                    a.total_working_time = %s,
+                                    a.mineral_amount = CASE WHEN (%s > 72000) THEN 20 ELSE (%s) END
+                                WHERE (a.group_idx = b.group_idx AND a.member_idx = %s );
+                                    """
+                
+        sqlQuery_1_1 = """SELECT sum(a.mineral_amount) x FROM tb_mining_history AS a
+                        INNER JOIN tb_mining AS b
+                        ON (a.robot_idx = b.robot_idx)
+                        WHERE a.group_idx = b.group_idx AND a.member_idx = %s;"""
 
+        sqlQuery_2 = """DELETE FROM tb_mining 
+                        WHERE member_idx = %s;"""
+
+        sqlQuery_3 = """UPDATE tb_robot x
+                        SET x.working_yn = 0,
+                            x.update_dt = %s,
+                            x.update_uttm = %s,
+                            x.total_amount = CASE WHEN (%s > 72000) THEN x.total_amount + 20 ELSE x.total_amount + %s END
+                
+                        WHERE x.working_yn = 1 AND x.robot_member_idx = %s"""
+        
+        sqlQuery_4 = """INSERT INTO tb_mineral(member_idx, mineral_amount, mineral_from_mining, update_dt, update_uttm)
+                        VALUES(%s,%s,%s,%s,%s)
+                        ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s,
+                                                mineral_from_mining = mineral_from_mining + %s,
+                                                update_dt = %s,
+                                                update_uttm = %s"""
+        sqlQuery_5 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_dt, create_uttm, type) 
+                        VALUES(%s, %s, %s, %s ,%s,%s);
+                        """
         cursor.execute(sqlQuery_0,bindData_0)
         Rows = cursor.fetchall()
         if Rows :
-            cnt_robot = len(Rows)
-            
-            now_dt = datetime.now()
-            now_uttm = int(time.time())
-            start_uttm = Rows[0]["start_uttm"]
-            mineral_plus = (now_uttm -start_uttm)/72000*20 
-            sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
-                            SET a.end_uttm = %s,
-                                a.end_dt = %s,
-                                a.total_working_time = %s,
-                                a.mineral_amount = CASE WHEN (%s > 72000) THEN 20 ELSE (%s) END
-                            WHERE (a.group_idx = b.group_idx AND a.member_idx = %s );
-                                """
-            
-            sqlQuery_1_1 = """SELECT sum(a.mineral_amount) x FROM tb_mining_history AS a
-                            INNER JOIN tb_mining AS b
-                            ON (a.robot_idx = b.robot_idx)
-                            WHERE a.group_idx = b.group_idx AND a.member_idx = %s;"""
+            if Rows[0]["land_type"] == 0:
+                cnt_robot = len(Rows)
+                
+                now_dt = datetime.now()
+                now_uttm = int(time.time())
+                start_uttm = Rows[0]["start_uttm"]
+                mineral_plus = ((now_uttm -start_uttm)/72000)*20 
+                
+                                
+                bindData_1 = (now_uttm, now_dt, now_uttm - start_uttm, now_uttm - start_uttm, mineral_plus, _member_idx)
+                bindData_1_1 = (_member_idx)
+                bindData_2 = (_member_idx)
+                bindData_3 = (now_dt, now_uttm, now_uttm - start_uttm, mineral_plus , _member_idx)
+                
+                cursor.execute(sqlQuery_1,bindData_1)
+                cursor.execute(sqlQuery_1_1,bindData_1_1)
+                temp_row = cursor.fetchone()
+                mineral_insert = temp_row["x"]
+                bindData_4 = (_member_idx, mineral_insert, mineral_insert, now_dt, now_uttm , mineral_insert, mineral_insert, now_dt, now_uttm)
+                bindData_5 = (_member_idx, mineral_insert, _member_idx, now_dt, now_uttm, 0)
+                cursor.execute(sqlQuery_3,bindData_3)
+                cursor.execute(sqlQuery_4,bindData_4)
+                cursor.execute(sqlQuery_5,bindData_5)
+                cursor.execute(sqlQuery_2,bindData_2)
 
-            sqlQuery_2 = """DELETE FROM tb_mining 
-                            WHERE member_idx = %s;"""
+                message = {
+                    "status" : "Y",
+                    "taskCnt" : cnt_robot
+                }
+                respone = jsonify(message)
+                respone.status_code = 200
+            elif Rows[0]["land_type"] == 1:
+                cnt_robot = len(Rows)
+                
+                now_dt = datetime.now()
+                now_uttm = int(time.time())
+                start_uttm = Rows[0]["start_uttm"] ##애매함
+                mineral_plus = ((now_uttm -start_uttm)/72000)*2.5 
+                sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
+                                SET a.end_uttm = %s,
+                                    a.end_dt = %s,
+                                    a.total_working_time = %s,
+                                    a.mineral_amount = CASE WHEN (%s > 72000) THEN 2.5 ELSE (%s) END
+                                WHERE (a.group_idx = b.group_idx AND a.member_idx = %s );
+                                    """
+                sqlQuery_3 = """UPDATE tb_robot x
+                        SET x.working_yn = 0,
+                            x.update_dt = %s,
+                            x.update_uttm = %s,
+                            x.total_amount = CASE WHEN (%s > 72000) THEN x.total_amount + 2.5 ELSE x.total_amount + %s END
+                
+                        WHERE x.working_yn = 1 AND x.robot_member_idx = %s"""      
+                sqlQuery_4 = """INSERT INTO tb_mineral(member_idx, mineral_amount, mineral_from_mining, update_dt, update_uttm)
+                        VALUES(%s,%s,%s,%s,%s)
+                        ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s,
+                                                mineral_from_mining = mineral_from_mining + %s,
+                                                update_dt = %s,
+                                                update_uttm = %s"""          
+                bindData_1 = (now_uttm, now_dt, now_uttm - start_uttm, now_uttm - start_uttm, mineral_plus, _member_idx)
+                bindData_1_1 = (_member_idx)
+                bindData_2 = (_member_idx)
+                bindData_3 = (now_dt, now_uttm, now_uttm - start_uttm, mineral_plus , _member_idx)
+                
+                cursor.execute(sqlQuery_1,bindData_1)
+                cursor.execute(sqlQuery_1_1,bindData_1_1)
+                temp_row = cursor.fetchone()
+                mineral_insert = temp_row["x"]
+                bindData_4 = (_member_idx, mineral_insert, mineral_insert, now_dt, now_uttm , mineral_insert, mineral_insert, now_dt, now_uttm)
+                bindData_5 = (_member_idx, mineral_insert, _member_idx, now_dt, now_uttm, 0)
+                cursor.execute(sqlQuery_3,bindData_3)
+                cursor.execute(sqlQuery_4,bindData_4)
+                cursor.execute(sqlQuery_5,bindData_5)
+                cursor.execute(sqlQuery_2,bindData_2)
 
-            sqlQuery_3 = """UPDATE tb_robot x
-                            SET x.working_yn = 0,
-                                x.update_dt = %s,
-                                x.update_uttm = %s,
-                                x.total_amount = CASE WHEN (%s > 72000) THEN x.total_amount + 20 ELSE x.total_amount + %s END
-                    
-                            WHERE x.working_yn = 1 AND x.robot_member_idx = %s"""
-            
-            sqlQuery_4 = """INSERT INTO tb_mineral(member_idx, mineral_amount, mineral_from_mining, update_dt, update_uttm)
-                            VALUES(%s,%s,%s,%s,%s)
-                            ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s,
-                                                    mineral_from_mining = mineral_from_mining + %s,
-                                                    update_dt = %s,
-                                                    update_uttm = %s"""
-            sqlQuery_5 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_dt, create_uttm, type) 
-                            VALUES(%s, %s, %s, %s ,%s,%s);
-                            """
-                            
-            bindData_1 = (now_uttm, now_dt, now_uttm - start_uttm, now_uttm - start_uttm, mineral_plus, _member_idx)
-            bindData_1_1 = (_member_idx)
-            bindData_2 = (_member_idx)
-            bindData_3 = (now_dt, now_uttm, now_uttm - start_uttm, mineral_plus , _member_idx)
-            
-            cursor.execute(sqlQuery_1,bindData_1)
-            cursor.execute(sqlQuery_1_1,bindData_1_1)
-            temp_row = cursor.fetchone()
-            mineral_insert = temp_row["x"]
-            bindData_4 = (_member_idx, mineral_insert, mineral_insert, now_dt, now_uttm , mineral_insert, mineral_insert, now_dt, now_uttm)
-            bindData_5 = (_member_idx, mineral_insert, _member_idx, now_dt, now_uttm, 0)
-            cursor.execute(sqlQuery_3,bindData_3)
-            cursor.execute(sqlQuery_4,bindData_4)
-            cursor.execute(sqlQuery_5,bindData_5)
-            cursor.execute(sqlQuery_2,bindData_2)
-
-            message = {
-                "status" : "Y",
-                "taskCnt" : cnt_robot
-            }
-            respone = jsonify(message)
-            respone.status_code = 200
+                message = {
+                    "status" : "Y",
+                    "taskCnt" : cnt_robot
+                }
+                respone = jsonify(message)
+                respone.status_code = 200             
         else:
             message = {
                 "status" : "Y",
