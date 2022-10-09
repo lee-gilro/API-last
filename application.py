@@ -417,7 +417,7 @@ def settlement():
                             r["refined_mineral"] = refined_mineral
                             
                             temp_tuple_1 = (r["refined_mineral"], now_dt , r["refined_mineral"] ,r["member_idx"])
-                            temp_tuple_2 = (r["member_idx"], r["member_idx"], "settlement", r["refined_mineral"], now_uttm, now_dt, group_idx)
+                            temp_tuple_2 = (r["member_idx"], _member_idx, "settlement", r["refined_mineral"], now_uttm, now_dt, group_idx)
                             temp_tuple_3 = (r["refined_mineral"], r["refined_mineral"], now_dt, r["member_idx"])
                             result_list_1.append(temp_tuple_1)
                             result_list_2.append(temp_tuple_2)
@@ -460,17 +460,36 @@ def settlement():
                     cursor.executemany(sqlQuery_3,bindData_3)
                     print("이까지 ㅇㅋ3")
                     cursor.executemany(sqlQuery_5,bindData_5)
-                    respone = jsonify('successfully settled')
-                    respone.status_code = 200
+                    message = {
+                    "status" : "Y",
+                    "settledRM" : refined_mineral
+                    }
+                    respone = jsonify(message)
+                    respone.status_code = 200 
                 else:
-                    respone = jsonify("this member is not land owner so can not settle")
+                    message = {
+                    "status" : "N",
+                    "settledRM" : 0,
+                    "message" : "this member dont have a land"
+                    }
+                    respone = jsonify(message)
                     respone.status_code = 200
             else:
-                respone = jsonify("there is no such robot")
+                message = {
+                    "status" : "N",
+                    "settledRM" : 0,
+                    "message" : "this member dont have a land or package"
+                }
+                respone = jsonify(message)
                 respone.status_code = 200
     except Exception as e:
         conn.rollback()
-        respone = jsonify('ERROR ')
+        message = {
+                    "status" : "N",
+                    "settledRM" : 0,
+                    "message" : e
+        }
+        respone = jsonify(message)
         respone.status_code = 200
         print(e)
     finally:
