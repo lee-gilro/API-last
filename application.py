@@ -462,7 +462,8 @@ def settlement():
                     cursor.executemany(sqlQuery_5,bindData_5)
                     message = {
                     "status" : "Y",
-                    "settledRM" : refined_mineral
+                    "settledRM" : effective_mineral,
+                    "message" : "successfully settled"
                     }
                     respone = jsonify(message)
                     respone.status_code = 200 
