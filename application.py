@@ -383,96 +383,103 @@ def settlement():
                         effective_mineral = _mineral_amount
                     else:
                         effective_mineral = _ref_enery
-
+                    if effective_mineral != 0:
                     # 미네랄에서 새금을 제외한다. 만약 남은 re 보다 많다면 그대로 정산되고, re가 부족하다면 남은 re 만큼 정산된다.
-                   
-                    for r in Rows:
-                        if r["influence_lv"] >= r["lvl"]-1: #해당 로우의 유저의 인플루언스 래밸(수당래밸) 이 발생자와의 거리보다 크거나 같아야지 수당을 받을수있다.
-                            if r["title"] >= (_title): #해당 로우의 유저의 타이틀이 발생자보다 같거나 높으면 정가로, 아니면 반값
-                                refined_mineral = effective_mineral
-                            else:
-                                refined_mineral = effective_mineral * 0.5
-                            
-                            if r["lvl"]-1 == 0:
-                                refined_mineral = refined_mineral
-                            elif r["lvl"]-1 == 1:
-                                refined_mineral = refined_mineral*1
-                            elif r["lvl"]-1 == 2:
-                                refined_mineral = refined_mineral*0.4
-                            elif r["lvl"]-1 == 3:
-                                refined_mineral = refined_mineral*0.3
-                            elif r["lvl"]-1 == 4:
-                                refined_mineral = refined_mineral*0.2
-                            elif r["lvl"]-1 == 5:
-                                refined_mineral = refined_mineral*0.15
-                            elif 10 >= r["lvl"]-1 >= 6:
-                                refined_mineral = refined_mineral*0.05
-                            elif 15 >= r["lvl"]-1 >= 11:
-                                refined_mineral = refined_mineral*0.03
-                            elif 20 >= r["lvl"]-1 >= 16:
-                                refined_mineral = refined_mineral*0.01
-                            elif 30 >= r["lvl"]-1 >= 21:
-                                refined_mineral = refined_mineral*0.005
-                            
-                            r["refined_mineral"] = refined_mineral
-                            
-                            temp_tuple_1 = (r["refined_mineral"], now_dt , r["refined_mineral"] ,r["member_idx"])
-                            temp_tuple_2 = (r["member_idx"], _member_idx, "settlement", r["refined_mineral"], now_uttm, now_dt, group_idx)
-                            temp_tuple_3 = (r["refined_mineral"], r["refined_mineral"], now_dt, r["member_idx"])
-                            result_list_1.append(temp_tuple_1)
-                            result_list_2.append(temp_tuple_2)
-                            result_list_3.append(temp_tuple_3)
+                        for r in Rows:
+                            if r["influence_lv"] >= r["lvl"]-1: #해당 로우의 유저의 인플루언스 래밸(수당래밸) 이 발생자와의 거리보다 크거나 같아야지 수당을 받을수있다.
+                                if r["title"] >= (_title): #해당 로우의 유저의 타이틀이 발생자보다 같거나 높으면 정가로, 아니면 반값
+                                    refined_mineral = effective_mineral
+                                else:
+                                    refined_mineral = effective_mineral * 0.5
+                                
+                                if r["lvl"]-1 == 0:
+                                    refined_mineral = refined_mineral
+                                elif r["lvl"]-1 == 1:
+                                    refined_mineral = refined_mineral*1
+                                elif r["lvl"]-1 == 2:
+                                    refined_mineral = refined_mineral*0.4
+                                elif r["lvl"]-1 == 3:
+                                    refined_mineral = refined_mineral*0.3
+                                elif r["lvl"]-1 == 4:
+                                    refined_mineral = refined_mineral*0.2
+                                elif r["lvl"]-1 == 5:
+                                    refined_mineral = refined_mineral*0.15
+                                elif 10 >= r["lvl"]-1 >= 6:
+                                    refined_mineral = refined_mineral*0.05
+                                elif 15 >= r["lvl"]-1 >= 11:
+                                    refined_mineral = refined_mineral*0.03
+                                elif 20 >= r["lvl"]-1 >= 16:
+                                    refined_mineral = refined_mineral*0.01
+                                elif 30 >= r["lvl"]-1 >= 21:
+                                    refined_mineral = refined_mineral*0.005
+                                
+                                r["refined_mineral"] = refined_mineral
+                                
+                                temp_tuple_1 = (r["refined_mineral"], now_dt , r["refined_mineral"] ,r["member_idx"])
+                                temp_tuple_2 = (r["member_idx"], _member_idx, "settlement", r["refined_mineral"], now_uttm, now_dt, group_idx)
+                                temp_tuple_3 = (r["refined_mineral"], r["refined_mineral"], now_dt, r["member_idx"])
+                                result_list_1.append(temp_tuple_1)
+                                result_list_2.append(temp_tuple_2)
+                                result_list_3.append(temp_tuple_3)
 
-                    sqlQuery_1 = """INSERT INTO tb_mineral(member_idx, mineral_amount, update_dt, update_uttm)
-                                VALUES(%s, %s, %s, %s)
-                                ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s,
-                                                        update_dt = %s,
-                                                        update_uttm = %s;"""
-                    sqlQuery_2 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_dt, create_uttm, type) 
-                                VALUES(%s, %s, %s, %s, %s, %s);"""
-                    sqlQuery_3 = """UPDATE tb_point
-                                    SET point = point + %s,
-                                        mod_dt = %s,
-                                        get_point = get_point + %s
-                                    WHERE member_idx = %s
-                                                        ;"""
-                    sqlQuery_4 = """INSERT INTO tb_point_history(member_idx, send_member_idx, point_cd, point, create_ut, create_dt, grp_idx) 
-                                VALUES(%s, %s, %s, %s, %s, %s, %s);"""
-                    sqlQuery_5 = """UPDATE tb_land
-                                    SET refining_energy = CASE WHEN refining_energy - %s < 0 THEN 0 ELSE refining_energy - %s END,
-                                        update_dt = %s
-                                    WHERE owner_idx = %s"""
+                        sqlQuery_1 = """INSERT INTO tb_mineral(member_idx, mineral_amount, update_dt, update_uttm)
+                                    VALUES(%s, %s, %s, %s)
+                                    ON DUPLICATE KEY UPDATE mineral_amount = mineral_amount + %s,
+                                                            update_dt = %s,
+                                                            update_uttm = %s;"""
+                        sqlQuery_2 = """INSERT INTO tb_mineral_history(member_idx, mineral_chg_amount, from_member_idx, create_dt, create_uttm, type) 
+                                    VALUES(%s, %s, %s, %s, %s, %s);"""
+                        sqlQuery_3 = """UPDATE tb_point
+                                        SET point = point + %s,
+                                            mod_dt = %s,
+                                            get_point = get_point + %s
+                                        WHERE member_idx = %s
+                                                            ;"""
+                        sqlQuery_4 = """INSERT INTO tb_point_history(member_idx, send_member_idx, point_cd, point, create_ut, create_dt, grp_idx) 
+                                    VALUES(%s, %s, %s, %s, %s, %s, %s);"""
+                        sqlQuery_5 = """UPDATE tb_land
+                                        SET refining_energy = CASE WHEN refining_energy - %s < 0 THEN 0 ELSE refining_energy - %s END,
+                                            update_dt = %s
+                                        WHERE owner_idx = %s"""
 
-                    print("이까지 ㅇㅋㄴ")
-                    bindData_1 = (_member_idx, _mineral_start*(-1), now_dt, now_uttm, _mineral_start*(-1), now_dt, now_uttm)
-                    bindData_2 = (_member_idx, _mineral_start*(-1), _member_idx, now_dt, now_uttm, 2)
-                    bindData_3 = result_list_1
-                    bindData_4 = result_list_2
-                    bindData_5 = result_list_3
-                    cursor.execute(sqlQuery_1,bindData_1)
-                    print("이까지 ㅇㅋ1")
-                    cursor.execute(sqlQuery_2,bindData_2)
-                    print("이까지 ㅇㅋ2")
-                    print("bindDate3 는 ",bindData_3)
-                    print("bindDate4 는 ",bindData_4)
-                    cursor.executemany(sqlQuery_4,bindData_4)
-                    print("이까지 ㅇㅋ4")
-                    cursor.executemany(sqlQuery_3,bindData_3)
-                    print("이까지 ㅇㅋ3")
-                    cursor.executemany(sqlQuery_5,bindData_5)
-                    message = {
-                    "status" : "Y",
-                    "settledRM" : effective_mineral,
-                    "message" : "successfully settled"
-                    }
-                    respone = jsonify(message)
-                    respone.status_code = 200 
+                        print("이까지 ㅇㅋㄴ")
+                        bindData_1 = (_member_idx, _mineral_start*(-1), now_dt, now_uttm, _mineral_start*(-1), now_dt, now_uttm)
+                        bindData_2 = (_member_idx, _mineral_start*(-1), _member_idx, now_dt, now_uttm, 2)
+                        bindData_3 = result_list_1
+                        bindData_4 = result_list_2
+                        bindData_5 = result_list_3
+                        cursor.execute(sqlQuery_1,bindData_1)
+                        print("이까지 ㅇㅋ1")
+                        cursor.execute(sqlQuery_2,bindData_2)
+                        print("이까지 ㅇㅋ2")
+                        print("bindDate3 는 ",bindData_3)
+                        print("bindDate4 는 ",bindData_4)
+                        cursor.executemany(sqlQuery_4,bindData_4)
+                        print("이까지 ㅇㅋ4")
+                        cursor.executemany(sqlQuery_3,bindData_3)
+                        print("이까지 ㅇㅋ3")
+                        cursor.executemany(sqlQuery_5,bindData_5)
+                        message = {
+                        "status" : "Y",
+                        "settledRM" : effective_mineral,
+                        "message" : "successfully settled"
+                        }
+                        respone = jsonify(message)
+                        respone.status_code = 200 
+                    else:
+                        message = {
+                        "status" : "N",
+                        "settledRM" : 0,
+                        "message" : "this member dont have a land"
+                        }
+                        respone = jsonify(message)
+                        respone.status_code = 200
                 else:
                     message = {
-                    "status" : "N",
-                    "settledRM" : 0,
-                    "message" : "this member dont have a land"
-                    }
+                        "status" : "N",
+                        "settledRM" : 0,
+                        "message" : "this member dont have any mineral or refined energy"
+                        }
                     respone = jsonify(message)
                     respone.status_code = 200
             else:
