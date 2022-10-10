@@ -470,7 +470,7 @@ def settlement():
                         message = {
                         "status" : "N",
                         "settledRM" : 0,
-                        "message" : "this member dont have a land"
+                        "message" : "this member dont have any mineral"
                         }
                         respone = jsonify(message)
                         respone.status_code = 200
