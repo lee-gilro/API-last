@@ -164,7 +164,7 @@ def decide_title():
             elif 7 > result_1["title"] >= 1:
                 number_of_cond = 0
                 print("the order of top level is ", num_of_ref -1)
-                if num_of_ref >=2:
+                if num_of_ref >=3:
                     print("number or line is ", num_of_ref -1)
                     for i in range(num_of_ref -1):
                         
