@@ -48,6 +48,185 @@ def root():
     finally:
         return respone  
 
+@application.route('/decide_title', methods=['POST'])
+def decide_title():
+    try:        
+        _json = request.json
+        _member_idx = _json['member_idx']
+        
+        if _member_idx and request.method == 'POST':
+            conn = mysql.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)		
+            sqlQuery_0 = """SELECT * FROM tb_org_chart AS a
+                            JOIN tb_land AS b
+                            ON a.member_idx = b.owner_idx
+                            WHERE a.member_idx = %s;
+                            """
+            sqlQuery_1 = """SELECT * FROM (SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title ,ord, lvl) AS (
+                            SELECT     member_idx,
+                                        member_id,
+                                        parent_idx,
+                                        title,
+                                        ord,
+                                        1 as lvl
+                            FROM       tb_org_chart
+                            WHERE      member_idx = %s
+                            UNION ALL
+                            SELECT     p.member_idx,
+                                        p.member_id,
+                                        p.parent_idx,
+                                        p.title,
+                                        p.ord,
+                                        x.lvl + 1 lvl
+                            FROM       tb_org_chart p
+                            INNER JOIN cte x
+                                    on p.parent_idx = x.member_idx
+                            )
+                            SELECT * FROM cte 
+                            WHERE lvl <= %s) a
+                            JOIN tb_land b
+                            ON a.member_idx = b.owner_idx
+                            ORDER BY a.member_idx DESC) c 
+                            JOIN tb_info_packages d
+                            on c.refiner_lv = d.refiner_type
+                            WHERE c.member_idx NOT IN (%s);"""
+            sqlQuery_2 = """UPDATE tb_org_chart
+                            SET title = %s
+                            WHERE member_idx = %s;
+                            """
+            sqlQuery_3 = """SELECT max(title) FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title ,ord, lvl) AS (
+                            SELECT     member_idx,
+                                        member_id,
+                                        parent_idx,
+                                        title,
+                                        ord,
+                                        1 as lvl
+                            FROM       tb_org_chart
+                            WHERE      member_idx = %s
+                            UNION ALL
+                            SELECT     p.member_idx,
+                                        p.member_id,
+                                        p.parent_idx,
+                                        p.title,
+                                        p.ord,
+                                        x.lvl + 1 lvl
+                            FROM       tb_org_chart p
+                            INNER JOIN cte x
+                                    on p.parent_idx = x.member_idx
+                            )
+                            SELECT * FROM cte 
+                            WHERE lvl <= %s) a
+                            JOIN tb_land b
+                            ON a.member_idx = b.owner_idx
+                            ORDER BY a.member_idx asc;
+                            """
+            bindData_0 = (_member_idx)
+            cursor.execute(sqlQuery_0, bindData_0)
+            result_1 = cursor.fetchone()
+            influence_lv = result_1["influence_lv"]
+            bindData_1 = (_member_idx, influence_lv+1, _member_idx) 
+            
+            cursor.execute(sqlQuery_1, bindData_1)
+            result_2 = cursor.fetchall()
+
+
+            num_of_ref = 0
+            total_pack_price = 0
+            for row in result_2:
+                if row["lvl"] <= influence_lv:
+                    if row["lvl"] == 2:
+                        num_of_ref = num_of_ref + 1
+                    total_pack_price = total_pack_price + row["packages_price"]
+                    print("total package price is ", total_pack_price)
+                    print("number or referral is ", num_of_ref)
+
+            if result_1["title"] == 0:
+                #추천인이 5인이 넘는지 (단 랜드 구매자한함.)
+                
+                if num_of_ref >= 3 and total_pack_price >= 5000:
+                    bindData_2 = (1, _member_idx)  
+                    cursor.execute(sqlQuery_2,bindData_2)
+                    messege = {
+                        "result_title" : 1,
+                        "message" : "successfully upgrade title",
+                        "result" : "Y"
+                    }
+                    respone = jsonify(messege)
+                    respone.status_code = 200
+                else:
+                    messege = {
+                        "result_title" : 0,
+                        "message" : "you are not satisfied upgrade condition for first title",
+                        "result" : "N"
+                    }
+                    respone = jsonify(messege)
+                    respone.status_code = 200
+            elif 7 > result_1["title"] >= 1:
+                number_of_cond = 0
+                print("the order of top level is ", num_of_ref -1)
+                if num_of_ref >=2:
+                    print("number or line is ", num_of_ref -1)
+                    for i in range(num_of_ref -1):
+                        
+                        bindData_3 = (result_2[i]["member_idx"], influence_lv)
+                        cursor.execute(sqlQuery_3,bindData_3)
+                        bottom = cursor.fetchone()
+                        if bottom["max(title)"] >= result_1["title"]:
+                            number_of_cond =number_of_cond + 1
+                        print("{} 님은 타이틀 래밸은 {} 입니다.".format(result_2[i]["member_idx"], bottom["max(title)"]))
+                    print("조건을 만족하는 영지는 {} 개 있습니다.".format(number_of_cond))
+                    if number_of_cond >= 3:
+                        bindData_2 = (result_1["title"] + 1, _member_idx)  
+                        cursor.execute(sqlQuery_2,bindData_2)
+                        messege = {
+                        "result_title" : result_1["title"],
+                        "message" : "successfully upgrade title",
+                        "result" : "Y"
+                        }
+                        respone = jsonify(messege)
+                        respone.status_code = 200
+                    else:
+                        messege = {
+                        "result_title" : result_1["title"],
+                        "message" : "you are not satisfied upgrade condition  for next title",
+                        "result" : "N"
+                        }
+                        respone = jsonify(messege)
+                        respone.status_code = 200
+                else:
+                    messege = {
+                    "result_title" : result_1["title"],
+                    "message" : "you are not satisfied upgrade condition  for next title",
+                    "result" : "N"
+                    }
+                    respone = jsonify(messege)
+                    respone.status_code = 200
+            elif result_1["title"] == 7:
+                messege = {
+                "result_title" : result_1["title"],
+                "message" : "You are already max level",
+                "result" : "N"
+                }
+                respone = jsonify(messege)
+                respone.status_code = 200
+        else:
+            return showMessage()
+    except Exception as e:
+        conn.rollback()
+        print(e)
+        messege = {
+                        "result_title" : result_1["title"],
+                        "result" : "N",
+                        "message" : "There is another error."
+                        }
+        respone = jsonify(messege)
+        respone.status_code = 200
+    finally:
+        conn.commit()
+        cursor.close() 
+        conn.close()  
+        return respone
+
 
 @application.route('/referralAllowance', methods=['POST'])
 def ref_allowance():
