@@ -12,7 +12,6 @@ from solana.keypair import Keypair
 import time
 import requests
 import json
-import time
 from datetime import date, datetime
 from bitstring import BitArray
 import ast
@@ -20,7 +19,7 @@ from eth_account import Account
 import secrets
 import asyncio
 from solana.publickey import PublicKey
-
+from pytz import timezone
 
 
 application = Flask(__name__)
@@ -496,8 +495,8 @@ async def check_sol():
 
 @application.route('/settlement', methods=['POST'])
 def settlement():
-    now_dt = datetime.now()
-    now_uttm = int(time.time())
+    now_dt = datetime.now(timezone("Asia/Seoul"))
+    now_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
     #맴버 idx 까지 받아서 2차검증필요
     try:        
         _json = request.json
@@ -737,8 +736,8 @@ def total_end_mining():
             if Rows[0]["land_type"] == 0:
                 cnt_robot = len(Rows)
                 
-                now_dt = datetime.now()
-                now_uttm = int(time.time())
+                now_dt = datetime.now(timezone('Asia/Seoul'))
+                now_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
                 start_uttm = Rows[0]["start_uttm"]
                 mineral_plus = ((now_uttm -start_uttm)/72000)*20 
                 
@@ -768,8 +767,8 @@ def total_end_mining():
             elif Rows[0]["land_type"] == 1:
                 cnt_robot = len(Rows)
                 
-                now_dt = datetime.now()
-                now_uttm = int(time.time())
+                now_dt = datetime.now(timezone('Asia/Seoul'))
+                now_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
                 start_uttm = Rows[0]["start_uttm"] ##애매함
                 mineral_plus = ((now_uttm -start_uttm)/72000)*2.5 
                 sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
@@ -856,8 +855,8 @@ def total_start_mining():
         if Rows :
             cnt_robot = len(Rows)
             init_idx = Rows[0]["robot_idx"]
-            start_dt = datetime.now()
-            start_uttm = int(time.time())
+            start_dt = datetime.now(timezone('Asia/Seoul'))
+            start_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
             
             tb_mining_list = []
             tb_mining_history_list = []
@@ -936,8 +935,8 @@ def end_mining():
         Rows = cursor.fetchone()
         if Rows :
             
-            now_dt = datetime.now()
-            now_uttm = int(time.time())
+            now_dt = datetime.now(timezone('Asia/Seoul'))
+            now_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
             start_uttm = Rows["start_uttm"]
             selected_group_idx = Rows["group_idx"]
             robot_name = Rows["robot_name"]
@@ -1035,8 +1034,8 @@ def start_mining():
                 init_idx = Rows["robot_idx"]
                 land_idx = Rows['land_idx']
                 robot_name = Rows["robot_name"]
-                now_dt = datetime.now()
-                now_uttm = int(time.time())
+                now_dt = datetime.now(timezone('Asia/Seoul'))
+                now_uttm = round(datetime.datetime.now(timezone('Asia/Seoul')).timestamp())
                 group_idx = str(init_idx)+str(int(time.time()))+str(_member_idx)
                 
                 sqlQuery_1 = """INSERT INTO tb_mining(member_idx, robot_idx, start_dt, start_uttm, group_idx) 
