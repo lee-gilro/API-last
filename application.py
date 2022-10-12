@@ -824,8 +824,7 @@ def total_end_mining():
         conn.rollback()
         message = {
                 "status" : "N",
-                "taskCnt" : 0,
-                "message" : e
+                "taskCnt" : 0
             }
         respone = jsonify(message)
         respone.status_code = 200
