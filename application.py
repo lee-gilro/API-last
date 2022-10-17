@@ -144,7 +144,7 @@ def decide_title():
                         "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 240
+                    respone.status_code = 200
                 else:
                     messege = {
                         "result_code" : 241,
@@ -152,7 +152,7 @@ def decide_title():
                         "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 241
+                    respone.status_code = 200
             elif 7 > result_1["title"] >= 1:
                 number_of_cond = 0
                 print("the order of top level is ", num_of_ref -1)
@@ -176,7 +176,7 @@ def decide_title():
                         "status" : 200
                         }
                         respone = jsonify(messege)
-                        respone.status_code = 240
+                        respone.status_code = 200
                     else:
                         messege = {
                         "amount" : result_1["title"],
@@ -184,7 +184,7 @@ def decide_title():
                         "status" : 200
                         }
                         respone = jsonify(messege)
-                        respone.status_code = 241
+                        respone.status_code = 200
                 else:
                     messege = {
                     "amount" : result_1["title"],
@@ -192,7 +192,7 @@ def decide_title():
                     "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 241
+                    respone.status_code = 200
             elif result_1["title"] == 7:
                 messege = {
                 "amount" : result_1["title"],
@@ -200,7 +200,7 @@ def decide_title():
                 "status" : 200
                 }
                 respone = jsonify(messege)
-                respone.status_code = 242
+                respone.status_code = 200
         else:
             return showMessage()
     except Exception as e:
@@ -212,7 +212,7 @@ def decide_title():
                         "status" : 500
                         }
         respone = jsonify(messege)
-        respone.status_code = 243
+        respone.status_code = 200
     finally:
         conn.commit()
         cursor.close() 
@@ -226,8 +226,7 @@ async def test():
     account = Keypair().generate()
     
     await client.close()
-    #respone = jsonify('successfully UPDATED, pubkey is ')
-    #respone.status_code = 200
+    
     print("step1 ok")
 
     try:
@@ -247,7 +246,7 @@ async def test():
                 'seckey' : new_seckey
                 }
         respone = jsonify(massage)
-        respone.status_code = 230
+        respone.status_code = 200
         return respone
     except Exception as e:
         massage = {
@@ -257,7 +256,7 @@ async def test():
                 'seckey' : None
             }
         respone = jsonify(massage)
-        respone.status_code = 231
+        respone.status_code = 200
         #conn.rollback()
         print(e)
     finally:
@@ -294,7 +293,7 @@ async def getwallet_klay():
             "seckey" : sp_mydata,
             "publicKey" : mydata["publicKey"],
             "status" : 200,
-            "result_code": 230 
+            "result_code": 200 
         })
         print(response.text)
     except Exception as e:
@@ -306,7 +305,7 @@ async def getwallet_klay():
             "status" : 500,
             "result_code": 231 
         })
-        respone.status_code = 231
+        respone.status_code = 200
         print(e)
     
     finally:
@@ -334,7 +333,7 @@ async def check_klay():
         }
         
         response = requests.request("POST", url, headers=headers, data=payload)
-        #response.status_code = 200
+        
         byte_str = response.content
         dict_str = byte_str.decode("utf-8")  
         print(dict_str)
@@ -351,7 +350,7 @@ async def check_klay():
                 'result_code' : 232
 
             })
-            respone.status_code = 232
+            respone.status_code = 200
         else:
             respone = jsonify({
                 "amount" : 0,
@@ -359,7 +358,7 @@ async def check_klay():
                 'result_code' : 232
 
             })
-            respone.status_code = 232
+            respone.status_code = 200
         
     except Exception as e:
         
@@ -369,7 +368,7 @@ async def check_klay():
             'result_code' : 233
 
         })
-        respone.status_code = 232
+        respone.status_code = 200
     
     finally:
         return respone
@@ -394,7 +393,7 @@ async def check_sol():
                 "amount" : balance["result"]["value"] * lamport
                 }
         respone = jsonify(massage)
-        respone.status_code = 232
+        respone.status_code = 200
 
         await client.close()
         return respone
@@ -406,7 +405,7 @@ async def check_sol():
                 "amount" : 0
                 }
         respone = jsonify(massage)
-        respone.status_code = 233
+        respone.status_code = 200
         #conn.rollback()
         print(e)
     finally:
@@ -565,7 +564,7 @@ def settlement():
                         "result_code" : 220
                         }
                         respone = jsonify(message)
-                        respone.status_code = 220 
+                        respone.status_code = 200 
                     else:
                         message = {
                         "status" : 200,
@@ -573,7 +572,7 @@ def settlement():
                         "result_code" : 221
                         }
                         respone = jsonify(message)
-                        respone.status_code = 221
+                        respone.status_code = 200
                 else:
                     message = {
                         "status" : 200,
@@ -581,7 +580,7 @@ def settlement():
                         "result_code" : 222
                         }
                     respone = jsonify(message)
-                    respone.status_code = 222
+                    respone.status_code = 200
             else:
                 message = {
                     "status" : 200,
@@ -589,7 +588,7 @@ def settlement():
                     "result_code" : 223
                 }
                 respone = jsonify(message)
-                respone.status_code = 223
+                respone.status_code = 200
     except Exception as e:
         conn.rollback()
         message = {
@@ -598,7 +597,7 @@ def settlement():
                     "result_code" : 224
         }
         respone = jsonify(message)
-        respone.status_code = 224
+        respone.status_code = 200
         print(e)
     finally:
         conn.commit()
@@ -686,7 +685,7 @@ def total_end_mining():
                     "result_code" : 210
                 }
                 respone = jsonify(message)
-                respone.status_code = 210
+                respone.status_code = 200
             elif Rows[0]["land_type"] == 1:
                 cnt_robot = len(Rows)
                 
@@ -736,7 +735,7 @@ def total_end_mining():
                     "result_code" : 210
                 }
                 respone = jsonify(message)
-                respone.status_code = 210             
+                respone.status_code = 200             
         else:
             message = {
                 "status" : 200,
@@ -744,7 +743,7 @@ def total_end_mining():
                 "result_code" : 211
             }
             respone = jsonify(message)
-            respone.status_code = 211
+            respone.status_code = 200
     except Exception as e:
         conn.rollback()
         message = {
@@ -753,7 +752,7 @@ def total_end_mining():
                 "result_code" : 212
             }
         respone = jsonify(message)
-        respone.status_code = 212
+        respone.status_code = 200
         print(e)
     finally:
         conn.commit()
@@ -819,7 +818,7 @@ def total_start_mining():
                 "result_code" : 213
             }
             respone = jsonify(message)
-            respone.status_code = 213
+            respone.status_code = 200
         else:
             message = {
                 "status" : 200,
@@ -827,7 +826,7 @@ def total_start_mining():
                 "result_code" : 214
             }
             respone = jsonify(message)
-            respone.status_code = 214
+            respone.status_code = 200
     except Exception as e:
         conn.rollback()
         message = {
@@ -836,7 +835,7 @@ def total_start_mining():
                 "result_code" : 215
             }
         respone =jsonify(message)
-        respone.status_code = 215
+        respone.status_code = 200
         print(e)
     finally:
         conn.commit()
