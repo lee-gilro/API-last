@@ -319,29 +319,6 @@ async def getwallet_klay():
     finally:
         return respone
     
-@application.route('/getWallet_usdt', methods=['GET','POST'])
-async def getwallet_usdt():
-    try:
-        priv = secrets.token_hex(32)
-        private_key = "0x" + priv
-        #print ("SAVE BUT DO NOT SHARE THIS:", private_key)
-        acct = Account.from_key(private_key)
-        #print("Address:", acct.address)
-        respone = jsonify({
-            "seckey" : private_key,
-            "pubkey" : acct.address,
-            "status" : "Y",
-            "message": "Successfully create wallet"
-        })
-        respone.status_code = 200
-    except Exception as e:
-        
-        respone =jsonify('ERROR ')
-        respone.status_code = 200
-        print(e)
-    
-    finally:
-        return respone
 
 @application.route('/check_klay', methods=['GET','POST'])
 async def check_klay():
