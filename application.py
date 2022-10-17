@@ -1,7 +1,3 @@
-from email import message
-from email.mime import application
-from tkinter.messagebox import NO
-from urllib import response
 import pymysql
 from flask import jsonify
 from flask import Flask
@@ -10,13 +6,10 @@ from flaskext.mysql import MySQL
 from flask_cors import CORS, cross_origin
 from solana.rpc.async_api import AsyncClient
 from solana.keypair import Keypair
-import time
 import requests
 import json
 from bitstring import BitArray
 import ast
-from eth_account import Account
-import secrets
 import asyncio
 from solana.publickey import PublicKey
 from pytz import timezone
