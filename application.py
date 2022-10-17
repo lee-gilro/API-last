@@ -1,5 +1,6 @@
 from email import message
 from email.mime import application
+from tkinter.messagebox import NO
 from urllib import response
 import pymysql
 from flask import jsonify
@@ -145,20 +146,20 @@ def decide_title():
                     bindData_2 = (1, _member_idx)  
                     cursor.execute(sqlQuery_2,bindData_2)
                     messege = {
-                        "result_title" : 1,
-                        "message" : "successfully upgrade title",
-                        "result" : "Y"
+                        "amount" : 1,
+                        "result_code" : 240,
+                        "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 200
+                    respone.status_code = 240
                 else:
                     messege = {
-                        "result_title" : 0,
-                        "message" : "you are not satisfied upgrade condition for first title",
-                        "result" : "N"
+                        "result_code" : 241,
+                        "amount" : 0,
+                        "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 200
+                    respone.status_code = 241
             elif 7 > result_1["title"] >= 1:
                 number_of_cond = 0
                 print("the order of top level is ", num_of_ref -1)
@@ -177,48 +178,48 @@ def decide_title():
                         bindData_2 = (result_1["title"] + 1, _member_idx)  
                         cursor.execute(sqlQuery_2,bindData_2)
                         messege = {
-                        "result_title" : result_1["title"],
-                        "message" : "successfully upgrade title",
-                        "result" : "Y"
+                        "amount" : result_1["title"],
+                        "result_code" : 240,
+                        "status" : 200
                         }
                         respone = jsonify(messege)
-                        respone.status_code = 200
+                        respone.status_code = 240
                     else:
                         messege = {
-                        "result_title" : result_1["title"],
-                        "message" : "you are not satisfied upgrade condition  for next title",
-                        "result" : "N"
+                        "amount" : result_1["title"],
+                        "result_code" : 241,
+                        "status" : 200
                         }
                         respone = jsonify(messege)
-                        respone.status_code = 200
+                        respone.status_code = 241
                 else:
                     messege = {
-                    "result_title" : result_1["title"],
-                    "message" : "you are not satisfied upgrade condition  for next title",
-                    "result" : "N"
+                    "amount" : result_1["title"],
+                    "result_code" : 241,
+                    "status" : 200
                     }
                     respone = jsonify(messege)
-                    respone.status_code = 200
+                    respone.status_code = 241
             elif result_1["title"] == 7:
                 messege = {
-                "result_title" : result_1["title"],
-                "message" : "You are already max level",
-                "result" : "N"
+                "amount" : result_1["title"],
+                "result_code" : 242,
+                "status" : 200
                 }
                 respone = jsonify(messege)
-                respone.status_code = 200
+                respone.status_code = 242
         else:
             return showMessage()
     except Exception as e:
         conn.rollback()
         print(e)
         messege = {
-                        "result_title" : result_1["title"],
-                        "result" : "N",
-                        "message" : "There is another error."
+                        "amount" : result_1["title"],
+                        "result_code" : 243,
+                        "status" : 500
                         }
         respone = jsonify(messege)
-        respone.status_code = 200
+        respone.status_code = 243
     finally:
         conn.commit()
         cursor.close() 
@@ -310,21 +311,23 @@ async def test():
         new_pubkey = str(_wallet_pubkey)
         new_seckey = string_code[2:]
         massage = {
-                'status' : "Y",
-                'message' : 'Successfully create wallet',
+                'status' : 200,
+                'result_code' : 230,
                 'pubkey' : new_pubkey,
                 'seckey' : new_seckey
                 }
         respone = jsonify(massage)
-        respone.status_code = 200
+        respone.status_code = 230
         return respone
     except Exception as e:
         massage = {
-                'status' : "N",
-                'message' : 'Failed to create wallet'
+                'status' : 500,
+                'result_code' : 231,
+                'pubkey' : None,
+                'seckey' : None
             }
         respone = jsonify(massage)
-        respone.status_code = 200
+        respone.status_code = 231
         #conn.rollback()
         print(e)
     finally:
@@ -360,14 +363,20 @@ async def getwallet_klay():
             "pubkey" : mydata["address"],
             "seckey" : sp_mydata,
             "publicKey" : mydata["publicKey"],
-            "status" : "Y",
-            "message": "Successfully create wallet" 
+            "status" : 200,
+            "result_code": 230 
         })
         print(response.text)
     except Exception as e:
         
-        respone =jsonify('ERROR ')
-        respone.status_code = 200
+        respone = jsonify({
+            "pubkey" : None,
+            "seckey" : None,
+            "publicKey" : None,
+            "status" : 500,
+            "result_code": 231 
+        })
+        respone.status_code = 231
         print(e)
     
     finally:
@@ -430,23 +439,30 @@ async def check_klay():
             print(up_bal_2)
             print(round((up_bal_2)/(10^18)))
             respone = jsonify({
-                "balance" : up_bal_2/1000000000000000000,
-                'status' : "Y",
-                'message' : 'Successfully check wallet'
+                "amount" : up_bal_2/1000000000000000000,
+                'status' : 200,
+                'result_code' : 232
 
             })
+            respone.status_code = 232
         else:
             respone = jsonify({
-                "balance" : 0,
-                'status' : "Y",
-                'message' : 'Successfully check wallet'
-                })
+                "amount" : 0,
+                'status' : 200,
+                'result_code' : 232
+
+            })
+            respone.status_code = 232
         
     except Exception as e:
         
-        respone =jsonify('ERROR ')
-        respone.status_code = 200
-        print(e)
+        respone = jsonify({
+            "amount" : 0,
+            'status' : 500,
+            'result_code' : 233
+
+        })
+        respone.status_code = 232
     
     finally:
         return respone
@@ -466,24 +482,24 @@ async def check_sol():
         
         
         massage = {
-                'status' : "Y",
-                'message' : 'Successfully check wallet',
-                "balance" : balance["result"]["value"] * lamport
-            
+                'status' : 200,
+                'result_code' : 232,
+                "amount" : balance["result"]["value"] * lamport
                 }
         respone = jsonify(massage)
-        respone.status_code = 200
+        respone.status_code = 232
 
         await client.close()
         return respone
         
     except Exception as e:
         massage = {
-                'status' : "N",
-                'message' : 'Failed to check wallet'
-            }
+                'status' : 500,
+                'result_code' : 233,
+                "amount" : 0
+                }
         respone = jsonify(massage)
-        respone.status_code = 200
+        respone.status_code = 233
         #conn.rollback()
         print(e)
     finally:
@@ -637,45 +653,45 @@ def settlement():
                         print("이까지 ㅇㅋ3")
                         cursor.executemany(sqlQuery_5,bindData_5)
                         message = {
-                        "status" : "Y",
-                        "settledRM" : effective_mineral,
-                        "message" : "successfully settled"
+                        "status" : 200,
+                        "amount" : effective_mineral,
+                        "result_code" : 220
                         }
                         respone = jsonify(message)
-                        respone.status_code = 200 
+                        respone.status_code = 220 
                     else:
                         message = {
-                        "status" : "N",
-                        "settledRM" : 0,
-                        "message" : "this member dont have any mineral"
+                        "status" : 200,
+                        "amount" : 0,
+                        "result_code" : 221
                         }
                         respone = jsonify(message)
-                        respone.status_code = 200
+                        respone.status_code = 221
                 else:
                     message = {
-                        "status" : "N",
-                        "settledRM" : 0,
-                        "message" : "this member dont have any mineral or refined energy"
+                        "status" : 200,
+                        "amount" : 0,
+                        "result_code" : 222
                         }
                     respone = jsonify(message)
-                    respone.status_code = 200
+                    respone.status_code = 222
             else:
                 message = {
-                    "status" : "N",
-                    "settledRM" : 0,
-                    "message" : "this member dont have a land or package"
+                    "status" : 200,
+                    "amount" : 0,
+                    "result_code" : 223
                 }
                 respone = jsonify(message)
-                respone.status_code = 200
+                respone.status_code = 223
     except Exception as e:
         conn.rollback()
         message = {
-                    "status" : "N",
-                    "settledRM" : 0,
-                    "message" : e
+                    "status" : 500,
+                    "amount" : 0,
+                    "result_code" : 224
         }
         respone = jsonify(message)
-        respone.status_code = 200
+        respone.status_code = 224
         print(e)
     finally:
         conn.commit()
@@ -758,11 +774,12 @@ def total_end_mining():
                 cursor.execute(sqlQuery_2,bindData_2)
 
                 message = {
-                    "status" : "Y",
-                    "taskCnt" : cnt_robot
+                    "status" : 200,
+                    "amount" : cnt_robot,
+                    "result_code" : 210
                 }
                 respone = jsonify(message)
-                respone.status_code = 200
+                respone.status_code = 210
             elif Rows[0]["land_type"] == 1:
                 cnt_robot = len(Rows)
                 
@@ -807,26 +824,29 @@ def total_end_mining():
                 cursor.execute(sqlQuery_2,bindData_2)
 
                 message = {
-                    "status" : "Y",
-                    "taskCnt" : cnt_robot
+                    "status" : 200,
+                    "amount" : cnt_robot,
+                    "result_code" : 210
                 }
                 respone = jsonify(message)
-                respone.status_code = 200             
+                respone.status_code = 210             
         else:
             message = {
-                "status" : "Y",
-                "taskCnt" : 0
+                "status" : 200,
+                "amount" : 0,
+                "result_code" : 211
             }
             respone = jsonify(message)
-            respone.status_code = 200
+            respone.status_code = 211
     except Exception as e:
         conn.rollback()
         message = {
-                "status" : "N",
-                "taskCnt" : 0
+                "status" : 500,
+                "amount" : 0,
+                "result_code" : 212
             }
         respone = jsonify(message)
-        respone.status_code = 200
+        respone.status_code = 212
         print(e)
     finally:
         conn.commit()
@@ -887,26 +907,29 @@ def total_start_mining():
             cursor.execute(sqlQuery_3,(start_dt, start_uttm, _member_idx))
 
             message = {
-                "status" : "Y",
-                "taskCnt" : cnt_robot
+                "status" : 200,
+                "amount" : cnt_robot,
+                "result_code" : 213
             }
             respone = jsonify(message)
-            respone.status_code = 200
+            respone.status_code = 213
         else:
             message = {
-                "status" : "Y",
-                "taskCnt" : 0
+                "status" : 200,
+                "amount" : 0,
+                "result_code" : 214
             }
             respone = jsonify(message)
-            respone.status_code = 200
+            respone.status_code = 214
     except Exception as e:
         conn.rollback()
         message = {
-                "status" : "N",
-                "taskCnt" : 0
+                "status" : 500,
+                "amount" : 0,
+                "result_code" : 215
             }
         respone =jsonify(message)
-        respone.status_code = 200
+        respone.status_code = 215
         print(e)
     finally:
         conn.commit()
