@@ -202,7 +202,13 @@ def decide_title():
                 respone = jsonify(messege)
                 respone.status_code = 200
         else:
-            return showMessage()
+            messege = {
+                "amount" : 0,
+                "result_code" : 248,
+                "status" : 200
+                }
+            respone = jsonify(messege)
+            respone.status_code = 200
     except Exception as e:
         conn.rollback()
         print(e)
@@ -219,7 +225,7 @@ def decide_title():
         conn.close()  
         return respone
 
-        
+
 @application.route('/progress_rate', methods=['POST'])
 def progress_rate():
     try:        
@@ -395,7 +401,7 @@ def progress_rate():
         else:
             messege = {
                 "amount" : 0,
-                "result_code" : 404,
+                "result_code" : 248,
                 "status" : 200
                 }
             respone = jsonify(messege)
