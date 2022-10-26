@@ -14,6 +14,8 @@ import asyncio
 from solana.publickey import PublicKey
 from pytz import timezone
 import datetime
+from eth_account import Account
+import secrets
 
 application = Flask(__name__)
 CORS(application)
@@ -427,7 +429,7 @@ def progress_rate():
 
 
 @application.route('/getWallet_sol', methods=['POST'])
-async def test():
+async def getWallet_sol():
 
     client = AsyncClient("https://api.mainnet-beta.solana.com")   
     account = Keypair().generate()
@@ -518,6 +520,46 @@ async def getwallet_klay():
     finally:
         return respone
     
+@application.route('/getWallet_bnb', methods=['POST'])
+async def getWallet_bnb():
+
+    try:
+        priv = secrets.token_hex(32)
+        priv = secrets.token_hex(32)
+        private_key = "0x" + priv
+        print ("SAVE BUT DO NOT SHARE THIS:", private_key)
+        acct = Account.from_key(private_key)
+        print("Address:", acct.address)
+        _wallet_pubkey = acct.address
+        _wallet_seckey = private_key
+       
+    
+        massage = {
+                'status' : 200,
+                'result_code' : 230,
+                'pubkey' : str(_wallet_pubkey),
+                'seckey' : str(_wallet_seckey)
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
+    except Exception as e:
+        massage = {
+                'status' : 500,
+                'result_code' : 231,
+                'pubkey' : None,
+                'seckey' : None
+            }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        #conn.rollback()
+        print(e)
+    finally:
+        
+        #cursor.close() 
+        #conn.close()  
+        return respone
+
 
 @application.route('/check_klay', methods=['GET','POST'])
 async def check_klay():
