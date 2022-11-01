@@ -662,6 +662,159 @@ async def check_sol():
         #cursor.close() 
         #conn.close()  
         return respone
+        
+@application.route('/next_package', methods=['POST'])
+def next_package():
+    try:        
+        _json = request.json
+        _member_idx = _json['member_idx']
+        
+        if _member_idx and request.method == 'POST':
+            conn = mysql.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)		
+            sqlQuery_0 = """SELECT * FROM (SELECT a.member_idx, a.title, b.refiner_lv, b.influence_lv FROM tb_org_chart AS a
+                            JOIN tb_land AS b
+                            ON a.member_idx = b.owner_idx
+                            WHERE a.member_idx = %s) as x
+                            JOIN tb_info_packages
+                            ON x.refiner_lv = tb_info_packages.packages_level;
+                            """
+            sqlQuery_0_1 = """SELECT * FROM tb_info_packages 
+                                WHERE packages_level = %s;
+                            """
+            
+                            #자신의 페키지 래밸을 가져온다.
+                            #다음 페키지 래밸이 되면 인플루언스 래밸이 얼마가 되는지를 계산한다.
+                            #멤버를 기입하면 해당 맴버가 받을 수 있는 예상 수익을 계산해준다. f(맴버, 패키지래밸)
+                            #수익은 자기 채굴 수익, 하부 수익으로 나뉜다.
+                            #자기 채굴 수익 = 로봇 대수 * RM 가격/달러 * 30 (매달)
+                            #하부 수익은 대수로 카운트 한다. 
+                            #쿼리로 자신의 인플루언스 래밸 이상, 다음 패키지의 인플루언스래밸 이하의 맴버들을과 그들의 로봇 갯수를 전부 가져온다(조인으로 가져오면될듯)
+                            #각 패키지 별로 한달 예상 수익을 계산하고 그 결과를 대수에 반영하여 추가적으로 수당에의한 수익을 계산한다. 
+            sqlQuery_1 = """SELECT * FROM (SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title ,ord, lvl) AS (
+                            SELECT     member_idx,
+                                        member_id,
+                                        parent_idx,
+                                        title,
+                                        ord,
+                                        1 as lvl
+                            FROM       tb_org_chart
+                            WHERE      member_idx = %s
+                            UNION ALL
+                            SELECT     p.member_idx,
+                                        p.member_id,
+                                        p.parent_idx,
+                                        p.title,
+                                        p.ord,
+                                        x.lvl + 1 lvl
+                            FROM       tb_org_chart p
+                            INNER JOIN cte x
+                                    on p.parent_idx = x.member_idx
+                            )
+                            SELECT * FROM cte 
+                            WHERE lvl-1 >= %s AND lvl-1 <= %s) a
+                            JOIN tb_land b
+                            ON a.member_idx = b.owner_idx
+                            ORDER BY a.member_idx DESC) c 
+                            JOIN tb_info_packages d
+                            on c.refiner_lv = d.refiner_type
+                            ;"""
+                            
+           
+            bindData_0 = (_member_idx)
+            cursor.execute(sqlQuery_0, bindData_0)
+            result_1 = cursor.fetchone()
+            influence_lv = result_1["influence_lv"]
+            package_lv = result_1["refiner_lv"]
+            user_title = result_1["title"]
+            robot_cnt = result_1["mobile_suite_cnt"]
+            cursor.execute("SELECT usdt FROM tb_setting_exchange_rate")
+            rm_price = (cursor.fetchone())["usdt"]
+
+        
+            if influence_lv < 7:
+                adding_price_per_month = 0
+                adding_price_per_month_by_mining = 0
+                
+                bindData_0_1 = (package_lv+1)
+                cursor.execute(sqlQuery_0_1,bindData_0_1)
+                result_1_1 = cursor.fetchone()
+                next_lv = result_1_1["influence_lv"] #다음 페키지의 인플루언스 래밸
+                bindData_1 = (_member_idx, influence_lv+1, next_lv)
+                cursor.execute(sqlQuery_1,bindData_1)
+                next_pack = cursor.fetchall() #현재 자신의 영향력 안에 있는 유저 보다는 멀고 다음 페키지의 영향력 래밸안에는 있는 유저들을 전부 모은다. 
+                print("현재의 influence lv 는 ", influence_lv)
+                print("다음 단계 패키지의 influence_lv 은 ", next_lv)
+                adding_robot = int(result_1_1["mobile_suite_cnt"]) - int(robot_cnt)
+                adding_price_per_month_by_mining = int(adding_robot) * float(rm_price) * 30 * 20 * 0.7
+                print("마이닝에 의해 증가할 수당은 ", adding_price_per_month_by_mining)
+                if influence_lv < 30:
+                    print("페키지 업그레이드 가능")
+                    for row in next_pack:
+                        print("for 구문 진입")
+                        row_income = row["mobile_suite_cnt"] * rm_price * 30 * 20 * 0.7
+                        print("초기 row_income 값", row_income)
+                        if row["title"] > user_title:
+                            row_income = row_income * 0.5
+                        elif row["title"] <= user_title:
+                            row_income = row_income * 1
+
+                        if row["lvl"]-1 == 0:
+                            row_income = row_income
+                        elif row["lvl"]-1 == 1:
+                            row_income = row_income*1
+                        elif row["lvl"]-1 == 2:
+                            row_income = row_income*0.4
+                        elif row["lvl"]-1 == 3:
+                            row_income = row_income*0.3
+                        elif row["lvl"]-1 == 4:
+                            row_income = row_income*0.2
+                        elif row["lvl"]-1 == 5:
+                            row_income = row_income*0.15
+                        elif 10 >= row["lvl"]-1 >= 6:
+                            row_income = row_income*0.05
+                        elif 15 >= row["lvl"]-1 >= 11:
+                            row_income = row_income*0.03
+                        elif 20 >= row["lvl"]-1 >= 16:
+                            row_income = row_income*0.01
+                        elif 30 >= row["lvl"]-1 >= 21:
+                            row_income = row_income*0.005
+                        adding_price_per_month = adding_price_per_month + row_income
+                        #해당 row 유저에 의해서 발생할 예상 수익이 계산된다.
+                    print("추가로 증가하는 수당은 ",adding_price_per_month)
+                total_add_income = round(adding_price_per_month + adding_price_per_month_by_mining,3)
+                messege = {
+                        "amount" : total_add_income,
+                        "result_code" : 250,
+                        "status" : 200
+                        }
+                respone = jsonify(messege)
+                respone.status_code = 200
+            else:
+                messege = {
+                        "amount" : 0,
+                        "result_code" : 251,
+                        "status" : 200
+                        }
+                respone = jsonify(messege)
+                respone.status_code = 200
+    
+    
+    except Exception as e:
+        conn.rollback()
+        print(e)
+        messege = {
+                        "amount" : 0,
+                        "result_code" : 252,
+                        "status" : 500
+                        }
+        respone = jsonify(messege)
+        respone.status_code = 200
+    finally:
+        conn.commit()
+        cursor.close() 
+        conn.close()  
+        return respone
 
 @application.route('/settlement', methods=['POST'])
 def settlement():
