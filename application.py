@@ -344,10 +344,10 @@ def progress_rate():
                     respone.status_code = 200
             elif 7 > result_1["title"] >= 1:
                 
-                print("the order of top level is ", num_of_ref -1)
+                print("the order of top level is ", num_of_ref)
                 if num_of_ref >=3:
-                    print("number or line is ", num_of_ref -1)
-                    for i in range(num_of_ref -1):
+                    print("number or line is ", num_of_ref)
+                    for i in range(num_of_ref ):
                         
                         bindData_3 = (result_2[i]["member_idx"], influence_lv)
                         cursor.execute(sqlQuery_3,bindData_3)
