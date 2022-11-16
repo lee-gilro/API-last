@@ -42,6 +42,32 @@ async def root():
     finally:
         return respone  
 
+
+def influnece_lv_counter(ref_count, influence_lv):
+    if influence_lv <= 7:
+        return min(ref_count,influence_lv)
+    elif influence_lv == 10:
+        if ref_count <= 7:
+            return ref_count
+        else:
+            return influence_lv
+    elif influence_lv == 13:
+        if ref_count <= 7:
+            return ref_count
+        elif ref_count == 8:
+            return 10
+        else:
+            return influence_lv
+    else:
+        if ref_count <= 7:
+            return ref_count
+        elif ref_count == 8:
+            return 10
+        elif ref_count == 9:
+            return 13
+        else:
+            return influence_lv
+
 @application.route('/decide_title', methods=['POST'])
 async def decide_title():
     try:        
@@ -117,26 +143,29 @@ async def decide_title():
             bindData_0 = (_member_idx)
             cursor.execute(sqlQuery_0, bindData_0)
             result_1 = cursor.fetchone()
-            influence_lv = result_1["influence_lv"]
-            bindData_1 = (_member_idx, influence_lv+1, _member_idx) 
+            #해당 맴버의 정보를 서버에서 가져온다.
+            influence_lv = result_1["influence_lv"] #패키지의 영향력 래밸
             
+            cursor.execute("SELECT * FROM tb_member WHERE idx = {}".format(_member_idx))
+            num_of_ref = (cursor.fetchone())["referral_regular_count"]
+            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv)
+
+            bindData_1 = (_member_idx, real_inf_lv+1, _member_idx) 
             cursor.execute(sqlQuery_1, bindData_1)
             result_2 = cursor.fetchall()
-
-
-            num_of_ref = 0
+            
+            #추천수
             total_pack_price = 0
             for row in result_2:
-                if row["lvl"] <= influence_lv:
-                    if row["lvl"] == 2:
-                        num_of_ref = num_of_ref + 1
+                if row["lvl"] <= real_inf_lv:
                     total_pack_price = total_pack_price + row["packages_price"]
                     print("total package price is ", total_pack_price)
                     print("number or referral is ", num_of_ref)
-
+            
+            
             if result_1["title"] == 0:
-                #추천인이 5인이 넘는지 (단 랜드 구매자한함.)
-                
+                #추천인이 3인이 넘는지 (단 랜드 구매자한함.)
+                #승작성공하면 RM 을 지급하는거는 추가 개발 필요.
                 if num_of_ref >= 3 and total_pack_price >= 5000:
                     bindData_2 = (1, _member_idx)  
                     cursor.execute(sqlQuery_2,bindData_2)
@@ -155,14 +184,15 @@ async def decide_title():
                     }
                     respone = jsonify(messege)
                     respone.status_code = 200
+    
             elif 7 > result_1["title"] >= 1:
                 number_of_cond = 0
-                print("the order of top level is ", num_of_ref -1)
+                print("the order of top level is ", num_of_ref)
                 if num_of_ref >=3:
-                    print("number or line is ", num_of_ref -1)
-                    for i in range(num_of_ref -1):
+                    print("number or line is ", num_of_ref)
+                    for i in range(num_of_ref):
                         
-                        bindData_3 = (result_2[i]["member_idx"], influence_lv)
+                        bindData_3 = (result_2[i]["member_idx"], real_inf_lv +1)
                         cursor.execute(sqlQuery_3,bindData_3)
                         bottom = cursor.fetchone()
                         if bottom["max(title)"] >= result_1["title"]:
@@ -170,15 +200,36 @@ async def decide_title():
                         print("{} 님은 타이틀 래밸은 {} 입니다.".format(result_2[i]["member_idx"], bottom["max(title)"]))
                     print("조건을 만족하는 영지는 {} 개 있습니다.".format(number_of_cond))
                     if number_of_cond >= 3:
-                        bindData_2 = (result_1["title"] + 1, _member_idx)  
-                        cursor.execute(sqlQuery_2,bindData_2)
-                        messege = {
-                        "amount" : result_1["title"],
-                        "result_code" : 240,
-                        "status" : 200
-                        }
-                        respone = jsonify(messege)
-                        respone.status_code = 200
+                        if result_1["title"] != 1:
+                            bindData_2 = (result_1["title"] + 1, _member_idx)  
+                            cursor.execute(sqlQuery_2,bindData_2)
+                            messege = {
+                            "amount" : result_1["title"]+1,
+                            "result_code" : 240,
+                            "status" : 200
+                            }
+                            respone = jsonify(messege)
+                            respone.status_code = 200
+                        else:
+                            if total_pack_price >= 130000:
+                                bindData_2 = (result_1["title"] + 1, _member_idx)  
+                                cursor.execute(sqlQuery_2,bindData_2)
+                                messege = {
+                                "amount" : result_1["title"]+1,
+                                "result_code" : 240,
+                                "status" : 200
+                                }
+                                respone = jsonify(messege)
+                                respone.status_code = 200
+                            else:
+                                messege = {
+                                "amount" : result_1["title"],
+                                "result_code" : 241,
+                                "status" : 200
+                                }
+                                respone = jsonify(messege)
+                                respone.status_code = 200
+
                     else:
                         messege = {
                         "amount" : result_1["title"],
@@ -301,21 +352,23 @@ async def progress_rate():
             cursor.execute(sqlQuery_0, bindData_0)
             result_1 = cursor.fetchone()
             influence_lv = result_1["influence_lv"]
-            bindData_1 = (_member_idx, influence_lv+1, _member_idx) 
+             
             
+            cursor.execute("SELECT * FROM tb_member WHERE idx = {}".format(_member_idx))
+            num_of_ref = (cursor.fetchone())["referral_regular_count"]
+            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv)
+            
+            bindData_1 = (_member_idx, real_inf_lv+1, _member_idx)
             cursor.execute(sqlQuery_1, bindData_1)
             result_2 = cursor.fetchall()
             number_of_cond = 0
 
-            num_of_ref = 0
+          
             total_pack_price = 0
             for row in result_2:
-                if row["lvl"] <= influence_lv:
-                    if row["lvl"] == 2:
-                        num_of_ref = num_of_ref + 1
-                    total_pack_price = total_pack_price + row["packages_price"]
-                    print("total package price is ", total_pack_price)
-                    print("number or referral is ", num_of_ref)
+                total_pack_price = total_pack_price + row["packages_price"]
+                print("total package price is ", total_pack_price)
+                print("number or referral is ", num_of_ref)
 
             if result_1["title"] == 0:
                 #추천인이 5인이 넘는지 (단 랜드 구매자한함.)
@@ -357,16 +410,40 @@ async def progress_rate():
                         print("{} 님은 타이틀 래밸은 {} 입니다.".format(result_2[i]["member_idx"], bottom["max(title)"]))
                     print("조건을 만족하는 영지는 {} 개 있습니다.".format(number_of_cond))
                     if number_of_cond >= 3:
-                        messege = {
-                        "amount" : result_1["title"],
-                        "result_code" : 246,
-                        "status" : 200,
-                        "total_pack_price" : total_pack_price,
-                        "num_of_ref" : num_of_ref,
-                        "progress" : number_of_cond
-                        }
-                        respone = jsonify(messege)
-                        respone.status_code = 200
+                        if result_1["title"] != 1:
+                            messege = {
+                            "amount" : result_1["title"],
+                            "result_code" : 246,
+                            "status" : 200,
+                            "total_pack_price" : total_pack_price,
+                            "num_of_ref" : num_of_ref,
+                            "progress" : number_of_cond
+                            }
+                            respone = jsonify(messege)
+                            respone.status_code = 200
+                        else:
+                            if total_pack_price >= 130000:
+                                messege = {
+                                "amount" : result_1["title"],
+                                "result_code" : 246,
+                                "status" : 200,
+                                "total_pack_price" : total_pack_price,
+                                "num_of_ref" : num_of_ref,
+                                "progress" : number_of_cond
+                                }
+                                respone = jsonify(messege)
+                                respone.status_code = 200
+                            else:
+                                messege = {
+                                "amount" : result_1["title"],
+                                "result_code" : 245,
+                                "status" : 200,
+                                "total_pack_price" : total_pack_price,
+                                "num_of_ref" : num_of_ref,
+                                "progress" : number_of_cond
+                                }
+                                respone = jsonify(messege)
+                                respone.status_code = 200
                     else:
                         messege = {
                         "amount" : result_1["title"],
@@ -427,6 +504,105 @@ async def progress_rate():
         conn.close()  
         return respone
 
+@application.route('/rateReturn', methods=['POST'])
+async def rate_return():
+    try:
+        _json = request.json
+        _pack_level = _json['pack_level']
+        _expacted_date = _json["expacted_date"]
+        _ref_num = _json["ref_num"]
+        print("try 구문 진입")
+        #페키지 래밸, 예치일, 추천수를 받아온다.
+        if _pack_level <= 7 and _expacted_date <= 365 and _ref_num <= 10:
+            print("input 값은 문제가 없습니다.")
+            conn = mysql.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)	
+            sqlQuery_0 = """SELECT * FROM tb_info_packages 
+                            WHERE idx = %s;
+                            """
+            bindData_0 = (_pack_level)
+            cursor.execute(sqlQuery_0,bindData_0)
+            pack_data = cursor.fetchone()
+            print("쿼리로 패키지 데이터를 받아 오는데 성공했습니다.")
+            cursor.execute("SELECT usdt FROM tb_setting_exchange_rate")
+            rm_price = cursor.fetchone()
+            print("쿼리로 RM 가격을 받아오는데 성공했습니다 가격은 {}.".format(rm_price["usdt"]))
+            #서버에서 패키지 정보를 가져온다.
+            investment_money = pack_data["packages_price"]
+            robot_num = pack_data["mobile_suite_cnt"]
+            effective_inf_level = influnece_lv_counter(_ref_num,pack_data["influence_lv"])
+            #실제 영향을 끼치는 패키지 래밸을 계산
+            total_earned_money = 0
+            
+            total_asset: int = 0
+            total_asset = total_asset + investment_money
+            num_of_code_500 = 0
+            expacted_date_earned = 0
+            total_date_earned = 0
+            addtional_invest = 0
+            print("모든 변수선언에 성공했습니다.")
+            #계산에 필요한 변수 선언
+            print("for 문 진입")
+            for i in range(365): #400일때 까지 계산
+                if i <= _expacted_date: #입력받은 예치일까지 계산결과는 따로 저장
+                    #print("expacteD_date if 구문 진입")
+                    total_earned_money = total_earned_money + (robot_num*20*0.7 + _ref_num*0.6*robot_num*20*0.7 + num_of_code_500*0.6*20*0.7)*rm_price["usdt"]
+                    if total_earned_money >= 500:
+                        total_earned_money = total_earned_money - 500
+                        num_of_code_500 = num_of_code_500 + 1
+                        robot_num = robot_num + 1
+                        addtional_invest = addtional_invest + 500
+                    expacted_date_earned = addtional_invest + total_earned_money
+                    print("{} 일째, 로봇 수는 총 {} 개이고, 하부 500 코드의 수는 {} 이고, 추천수는 {} 이다.".format(i+1,robot_num,num_of_code_500,_ref_num))
+                    print("{} 일째, 총 수익은 {} 이다 ".format(i+1,expacted_date_earned))
+                    print("{} 일째, 추가 투자금은 총 {} 이고, 총 수익은 {} 이다.".format(i+1, addtional_invest, total_earned_money))
+                    expacted_date_robot = robot_num
+                else:
+                    #print("expacteD_date else 구문 진입")
+                    total_earned_money = total_earned_money + (robot_num*20*0.7 + _ref_num * 0.6 * robot_num * 20  * 0.7 + num_of_code_500*0.6*20)*rm_price["usdt"]
+                    if total_earned_money >= 500:
+                        total_earned_money = total_earned_money - 500
+                        num_of_code_500 = num_of_code_500 + 1
+                        robot_num = robot_num + 1
+                        addtional_invest = addtional_invest + 500
+                    total_date_earned = expacted_date_earned+ addtional_invest + total_earned_money
+            
+            
+            messege = {
+                            "expacted_date_earned" : round(expacted_date_earned,3) ,
+                            "total_date_earned" : round(total_date_earned,3),
+                            "total_invest" : round(investment_money,3),
+                            "expacted_date_robot" : round(expacted_date_robot),
+                            "total_robot" : round(robot_num),
+                            "result_code" : 260,
+                            "status" : 200,
+                            "graph_data" : [{ "y" : investment_money , "x" : 0  },
+                                            { "y" : round(expacted_date_earned,3) , "x" : _expacted_date },
+                                            {  "y" : round(total_date_earned,3), "x" : 365}]
+                            
+                            }
+            respone = jsonify(messege)
+            respone.status_code = 200
+
+
+    except Exception as e:
+        messege = {
+                            "expacted_date_earned" : 0 ,
+                            "total_date_earned" : 0,
+                            "total_invest" :0,
+                            "result_code" : 261,
+                            "status" : 500
+                            }
+        respone = jsonify(messege)
+        respone.status_code = 200
+
+        #conn.rollback()
+        print(e)
+    finally:
+        
+        #cursor.close() 
+        #conn.close()  
+        return respone
 
 @application.route('/getWallet_sol', methods=['POST'])
 async def getWallet_sol():
@@ -866,33 +1042,6 @@ async def next_package():
         cursor.close() 
         conn.close()  
         return respone
-
-
-def influnece_lv_counter(ref_count, influence_lv):
-    if influence_lv <= 7:
-        return min(ref_count,influence_lv)
-    elif influence_lv == 10:
-        if ref_count <= 7:
-            return ref_count
-        else:
-            return influence_lv
-    elif influence_lv == 13:
-        if ref_count <= 7:
-            return ref_count
-        elif ref_count == 8:
-            return 10
-        else:
-            return influence_lv
-    else:
-        if ref_count <= 7:
-            return ref_count
-        elif ref_count == 8:
-            return 10
-        elif ref_count == 9:
-            return 13
-        else:
-            return influence_lv
-
 
 
 @application.route('/settlement', methods=['POST'])
