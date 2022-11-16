@@ -29,7 +29,7 @@ mysql.init_app(application)
 
 
 @application.route('/', methods=['POST','GET'])
-def root():
+async def root():
     try:        
         
         respone = jsonify('successfully UPDATED')
@@ -43,7 +43,7 @@ def root():
         return respone  
 
 @application.route('/decide_title', methods=['POST'])
-def decide_title():
+async def decide_title():
     try:        
         _json = request.json
         _member_idx = _json['member_idx']
@@ -229,7 +229,7 @@ def decide_title():
 
 
 @application.route('/progress_rate', methods=['POST'])
-def progress_rate():
+async def progress_rate():
     try:        
         _json = request.json
         _member_idx = _json['member_idx']
@@ -664,11 +664,11 @@ async def check_sol():
         return respone
         
 @application.route('/next_package', methods=['POST'])
-def next_package():
+async def next_package():
     try:        
         _json = request.json
         _member_idx = _json['member_idx']
-        _wanted_pack = _json["wanted_pack_level"]
+        _wanted_pack = _json["pack_level"]
         if _member_idx and request.method == 'POST':
             
             conn = mysql.connect()
@@ -683,7 +683,8 @@ def next_package():
             sqlQuery_0_1 = """SELECT * FROM tb_info_packages 
                                 WHERE packages_level = %s;
                             """
-            
+            sqlQuery_0_2 = """SELECT * FROM tb_member
+                                WHERE idx = %s"""
                             #자신의 페키지 래밸을 가져온다.
                             #다음 페키지 래밸이 되면 인플루언스 래밸이 얼마가 되는지를 계산한다.
                             #멤버를 기입하면 해당 맴버가 받을 수 있는 예상 수익을 계산해준다. f(맴버, 패키지래밸)
@@ -713,7 +714,7 @@ def next_package():
                                     on p.parent_idx = x.member_idx
                             )
                             SELECT * FROM cte 
-                            WHERE lvl-1 >= %s AND lvl-1 <= %s) a
+                            WHERE lvl-1 <= %s ) a
                             JOIN tb_land b
                             ON a.member_idx = b.owner_idx
                             ORDER BY a.member_idx DESC) c 
@@ -725,89 +726,127 @@ def next_package():
             bindData_0 = (_member_idx)
             cursor.execute(sqlQuery_0, bindData_0)
             result_1 = cursor.fetchone()
-            influence_lv = result_1["influence_lv"]
-            package_lv = result_1["refiner_lv"]
-            user_title = result_1["title"]
-            robot_cnt = result_1["mobile_suite_cnt"]
+            bindData_0_1 = (_wanted_pack)
+            cursor.execute(sqlQuery_0_1,bindData_0_1)
+            result_1_1 = cursor.fetchone()
             cursor.execute("SELECT usdt FROM tb_setting_exchange_rate")
             rm_price = (cursor.fetchone())["usdt"]
-            if package_lv < _wanted_pack:
-        
-                if influence_lv < 7:
-                    adding_price_per_month = 0
-                    adding_price_per_month_by_mining = 0
-                    
-                    bindData_0_1 = (_wanted_pack)
-                    cursor.execute(sqlQuery_0_1,bindData_0_1)
-                    result_1_1 = cursor.fetchone()
-                    next_lv = result_1_1["influence_lv"] #다음 페키지의 인플루언스 래밸
-                    bindData_1 = (_member_idx, influence_lv+1, next_lv)
-                    cursor.execute(sqlQuery_1,bindData_1)
-                    next_pack = cursor.fetchall() #현재 자신의 영향력 안에 있는 유저 보다는 멀고 다음 페키지의 영향력 래밸안에는 있는 유저들을 전부 모은다. 
-                    print("현재의 influence lv 는 ", influence_lv)
-                    print("다음 단계 패키지의 influence_lv 은 ", next_lv)
-                    adding_robot = int(result_1_1["mobile_suite_cnt"]) - int(robot_cnt)
-                    adding_price_per_month_by_mining = int(adding_robot) * float(rm_price) * 30 * 20 * 0.7
-                    print("마이닝에 의해 증가할 수당은 ", adding_price_per_month_by_mining)
-                    if influence_lv < 30:
-                        print("하부의 수당이 더 증가할 가능성 존재")
-                        for row in next_pack:
-                            print("for 구문 진입")
-                            row_income = row["mobile_suite_cnt"] * rm_price * 30 * 20 * 0.7
-                            print("초기 row_income 값", row_income)
-                            if row["title"] > user_title:
-                                row_income = row_income * 0.5
-                            elif row["title"] <= user_title:
-                                row_income = row_income * 1
+            if result_1 :
+                cursor.execute(sqlQuery_0_2,bindData_0)
+                member_info = cursor.fetchone()
 
-                            if row["lvl"]-1 == 0:
-                                row_income = row_income
-                            elif row["lvl"]-1 == 1:
-                                row_income = row_income*1
-                            elif row["lvl"]-1 == 2:
-                                row_income = row_income*0.4
-                            elif row["lvl"]-1 == 3:
-                                row_income = row_income*0.3
-                            elif row["lvl"]-1 == 4:
-                                row_income = row_income*0.2
-                            elif row["lvl"]-1 == 5:
-                                row_income = row_income*0.15
-                            elif 10 >= row["lvl"]-1 >= 6:
-                                row_income = row_income*0.05
-                            elif 15 >= row["lvl"]-1 >= 11:
-                                row_income = row_income*0.03
-                            elif 20 >= row["lvl"]-1 >= 16:
-                                row_income = row_income*0.01
-                            elif 30 >= row["lvl"]-1 >= 21:
-                                row_income = row_income*0.005
-                            adding_price_per_month = adding_price_per_month + row_income
-                            #해당 row 유저에 의해서 발생할 예상 수익이 계산된다.
-                        print("추가로 증가하는 수당은 ",adding_price_per_month)
-                    total_add_income = round(adding_price_per_month + adding_price_per_month_by_mining,3)
+                ref_count = member_info["referral_regular_count"]
+                user_title = result_1["title"]
+                
+                
+            
+                price_per_month = 0
+                price_per_month_by_mining = 0
+                
+                
+                next_lv = result_1_1["influence_lv"] #페키지의 인플루언스 래밸
+                true_inf_lv = influnece_lv_counter(ref_count, next_lv)
+                bindData_1 = (_member_idx,true_inf_lv)
+                cursor.execute(sqlQuery_1,bindData_1)
+                
+                next_pack = cursor.fetchall() #현재 자신의 영향력 안에 있는 유저를 전부 모은다.. 
+                
+                if next_pack:
+                    print("현재의 influence lv 는 ", true_inf_lv)
+                    
+                    total_robot = int(result_1_1["mobile_suite_cnt"])
+                    price_per_month_by_mining = int(total_robot) * float(rm_price) * 30 * 20 * 0.7
+                    print("마이닝에 의한 수당은 ", price_per_month_by_mining)
+                    print("해당 인플루언스 래밸일때, 나는 {} 까지 수당을 받을 수 있다.".format(len(next_pack)))
+                    for row in next_pack:
+                        print("for 구문 진입")
+                        row_income = row["mobile_suite_cnt"] * rm_price * 30 * 20 * 0.7
+                        
+                        if row["title"] > user_title:
+                            row_income = row_income * 0.5
+                        elif row["title"] <= user_title:
+                            row_income = row_income * 1
+
+                        if row["lvl"]-1 == 0:
+                            row_income = row_income*0
+                        elif row["lvl"]-1 == 1:
+                            row_income = row_income*0.5
+                        elif row["lvl"]-1 == 2:
+                            row_income = row_income*0.30
+                        elif row["lvl"]-1 == 3:
+                            row_income = row_income*0.25
+                        elif row["lvl"]-1 == 4:
+                            row_income = row_income*0.15
+                        elif row["lvl"]-1 == 5:
+                            row_income = row_income*0.10
+                        elif row["lvl"]-1 == 6:
+                            row_income = row_income*0.07
+                        elif row["lvl"]-1 == 7:
+                            row_income = row_income*0.06
+                        elif row["lvl"]-1 == 8:
+                            row_income = row_income*0.05
+                        elif row["lvl"]-1 == 9:
+                            row_income = row_income*0.04
+                        elif row["lvl"]-1 == 10:
+                            row_income = row_income*0.03
+                        elif row["lvl"]-1 == 11:
+                            row_income = row_income*0.03
+                        elif row["lvl"]-1 == 12:
+                            row_income = row_income*0.02
+                        elif 13<= row["lvl"]-1 <= 15:
+                            row_income = row_income*0.01
+                        elif 16<= row["lvl"]-1 <= 20:
+                            row_income = row_income*0.005
+                        print("추가 row_income 값", row_income)
+                        price_per_month = price_per_month + row_income
+                        #해당 row 유저에 의해서 발생할 예상 수익이 계산된다.
+                    print("라인에 의해 발생하는 수당은 ",price_per_month)
+                    total_add_income = round(price_per_month + price_per_month_by_mining,3)
                     messege = {
                             "amount" : total_add_income,
+                            "line_amount" : round(price_per_month,3),
+                            "pack_amount" : round(price_per_month_by_mining,3),
                             "result_code" : 250,
                             "status" : 200
                             }
                     respone = jsonify(messege)
                     respone.status_code = 200
                 else:
+                    price_per_month = 0
+                    price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.7
+                    total_add_income = round(price_per_month + price_per_month_by_mining,3)
                     messege = {
-                        "amount" : 0,
-                        "result_code" : 251,
-                        "status" : 200
-                        }
+                            "amount" : total_add_income,
+                            "line_amount" : round(price_per_month,3),
+                            "pack_amount" : round(price_per_month_by_mining,3),
+                            "result_code" : 250,
+                            "status" : 200
+                            }
                     respone = jsonify(messege)
                     respone.status_code = 200
-
             else:
+                price_per_month = 0
+                price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.7
+                total_add_income = round(price_per_month + price_per_month_by_mining,3)
                 messege = {
-                        "amount" : 0,
-                        "result_code" : 253,
-                        "status" : 200
-                        }
+                            "amount" : total_add_income,
+                            "line_amount" : round(price_per_month,3),
+                            "pack_amount" : round(price_per_month_by_mining,3),
+                            "result_code" : 250,
+                            "status" : 200
+                            }
                 respone = jsonify(messege)
                 respone.status_code = 200
+        else:
+            messege = {
+                    "amount" : 0,
+                    "line_amount" : 0,
+                    "pack_amount" : 0,
+                    "result_code" : 251,
+                    "status" : 200
+                    }
+            respone = jsonify(messege)
+            respone.status_code = 200
     
     
     except Exception as e:
@@ -815,6 +854,8 @@ def next_package():
         print(e)
         messege = {
                         "amount" : 0,
+                        "line_amount" : 0,
+                        "pack_amount" : 0,
                         "result_code" : 252,
                         "status" : 500
                         }
@@ -826,8 +867,36 @@ def next_package():
         conn.close()  
         return respone
 
+
+def influnece_lv_counter(ref_count, influence_lv):
+    if influence_lv <= 7:
+        return min(ref_count,influence_lv)
+    elif influence_lv == 10:
+        if ref_count <= 7:
+            return ref_count
+        else:
+            return influence_lv
+    elif influence_lv == 13:
+        if ref_count <= 7:
+            return ref_count
+        elif ref_count == 8:
+            return 10
+        else:
+            return influence_lv
+    else:
+        if ref_count <= 7:
+            return ref_count
+        elif ref_count == 8:
+            return 10
+        elif ref_count == 9:
+            return 13
+        else:
+            return influence_lv
+
+
+
 @application.route('/settlement', methods=['POST'])
-def settlement():
+async def settlement():
     now_dt = datetime.datetime.now(timezone("Asia/Seoul"))
     now_uttm = int(round(datetime.datetime.now(timezone("Asia/Seoul")).timestamp()))
     #맴버 idx 까지 받아서 2차검증필요
@@ -845,7 +914,7 @@ def settlement():
                             ON a.member_idx = b.owner_idx AND a.member_idx = c.member_idx
                             WHERE a.member_idx = %s;
                             """
-            sqlQuery_1 = """SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title , lvl) AS (
+            sqlQuery_1 = """SELECT * FROM (SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title , lvl) AS (
                             SELECT     member_idx,
                                         member_id,
                                         parent_idx,
@@ -864,18 +933,22 @@ def settlement():
                                     on p.member_idx = x.parent_idx
                             )
                             SELECT * FROM cte 
-                            LIMIT 31) a
+                            LIMIT 21) a
                             JOIN tb_land b
                             ON a.member_idx = b.owner_idx
-                            ORDER BY a.member_idx DESC;"""
+                            ) AS k
+                            INNER JOIN tb_member AS j
+                            ON k.member_idx = j.idx
+                            ORDER BY k.member_idx DESC;"""
             bindData_0 = (_member_idx)
             bindData_1 = (_member_idx)
             
             cursor.execute(sqlQuery_0,bindData_0)
             user_info = cursor.fetchone()
+            #Rows = 유저 정보를 받아온다.
             cursor.execute(sqlQuery_1,bindData_1)
             Rows = cursor.fetchall()
-            #Rows = 해당 맴버 상위로 30개 를 가져온다.
+            #Rows = 해당 맴버 상위로 20개 를 가져온다.(최대, 맴버 테이블도 같이 조인한다.)
             result_list_1 = []
             result_list_2 = []
             result_list_3 = [] #
@@ -883,10 +956,12 @@ def settlement():
                 if Rows[0]["lvl"] == 1:
                     sqlQuery_s = """select nextval(sq_group_stl)"""
                     cursor.execute(sqlQuery_s)
+                    #인덱스 올려준다.
                     group_idx = cursor.fetchone()["nextval(sq_group_stl)"]
                     print("group idx is ", group_idx)
                     _mineral_start = user_info["mineral_amount"] 
                     _mineral_amount = user_info["mineral_amount"]*0.7
+                    _fee_amount = user_info["mineral_amount"]*0.7
                     _title = user_info["title"]
                     _ref_enery = user_info["refining_energy"]
                 
@@ -897,7 +972,7 @@ def settlement():
                     if effective_mineral != 0:
                     # 미네랄에서 새금을 제외한다. 만약 남은 re 보다 많다면 그대로 정산되고, re가 부족하다면 남은 re 만큼 정산된다.
                         for r in Rows:
-                            if r["influence_lv"] >= r["lvl"]-1: #해당 로우의 유저의 인플루언스 래밸(수당래밸) 이 발생자와의 거리보다 크거나 같아야지 수당을 받을수있다.
+                            if influnece_lv_counter(r["referral_regular_count"],r["influence_lv"]) >= r["lvl"]-1: #해당 로우의 유저의 인플루언스 래밸(수당래밸) 이 발생자와의 거리보다 크거나 같아야지 수당을 받을수있다.
                                 if r["title"] >= (_title): #해당 로우의 유저의 타이틀이 발생자보다 같거나 높으면 정가로, 아니면 반값
                                     refined_mineral = effective_mineral
                                 else:
@@ -906,22 +981,32 @@ def settlement():
                                 if r["lvl"]-1 == 0:
                                     refined_mineral = refined_mineral
                                 elif r["lvl"]-1 == 1:
-                                    refined_mineral = refined_mineral*1
+                                    refined_mineral = refined_mineral*0.6
                                 elif r["lvl"]-1 == 2:
-                                    refined_mineral = refined_mineral*0.4
+                                    refined_mineral = refined_mineral*0.35
                                 elif r["lvl"]-1 == 3:
-                                    refined_mineral = refined_mineral*0.3
+                                    refined_mineral = refined_mineral*0.25
                                 elif r["lvl"]-1 == 4:
-                                    refined_mineral = refined_mineral*0.2
-                                elif r["lvl"]-1 == 5:
                                     refined_mineral = refined_mineral*0.15
-                                elif 10 >= r["lvl"]-1 >= 6:
+                                elif r["lvl"]-1 == 5:
+                                    refined_mineral = refined_mineral*0.10
+                                elif r["lvl"]-1 == 6:
+                                    refined_mineral = refined_mineral*0.07
+                                elif r["lvl"]-1 == 7:
+                                    refined_mineral = refined_mineral*0.06
+                                elif r["lvl"]-1 == 8:
                                     refined_mineral = refined_mineral*0.05
-                                elif 15 >= r["lvl"]-1 >= 11:
+                                elif r["lvl"]-1 == 9:
+                                    refined_mineral = refined_mineral*0.04
+                                elif r["lvl"]-1 == 10:
                                     refined_mineral = refined_mineral*0.03
-                                elif 20 >= r["lvl"]-1 >= 16:
+                                elif r["lvl"]-1 == 11:
+                                    refined_mineral = refined_mineral*0.03
+                                elif r["lvl"]-1 == 12:
+                                    refined_mineral = refined_mineral*0.02
+                                elif 13<= r["lvl"]-1 <= 15:
                                     refined_mineral = refined_mineral*0.01
-                                elif 30 >= r["lvl"]-1 >= 21:
+                                elif 16<= r["lvl"]-1 <= 20:
                                     refined_mineral = refined_mineral*0.005
                                 
                                 r["refined_mineral"] = refined_mineral
@@ -1018,7 +1103,7 @@ def settlement():
         return respone
 
 @application.route('/end_mining_all', methods=['POST'])
-def total_end_mining():
+async def total_end_mining():
     try:
         _json = request.json
         _member_idx = _json["member_idx"]
@@ -1173,7 +1258,7 @@ def total_end_mining():
         return respone
 
 @application.route('/start_mining_all', methods=['POST'])
-def total_start_mining():
+async def total_start_mining():
     #맴버 idx 까지 받아서 2차검증필요
     try:        
         _json = request.json
@@ -1257,7 +1342,7 @@ def total_start_mining():
 
 
 @application.route('/end_mining', methods=['POST'])
-def end_mining():
+async def end_mining():
     try:
         _json = request.json
         _member_idx = _json["member_idx"]
@@ -1349,7 +1434,7 @@ def end_mining():
         return respone
 
 @application.route('/start_mining', methods=['POST'])
-def start_mining():
+async def start_mining():
     #맴버 idx 까지 받아서 2차검증필요
     try:        
         _json = request.json
