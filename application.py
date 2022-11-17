@@ -583,6 +583,8 @@ async def rate_return():
                                             {  "y" : round(total_date_earned + investment_money,3), "x" : 365}]
                             
                             }
+            respone = jsonify(messege)
+            respone.status_code = 200
 
 
     except Exception as e:
