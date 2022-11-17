@@ -211,7 +211,7 @@ async def decide_title():
                             respone = jsonify(messege)
                             respone.status_code = 200
                         else:
-                            if total_pack_price >= 130000:
+                            if total_pack_price >= 120000:
                                 bindData_2 = (result_1["title"] + 1, _member_idx)  
                                 cursor.execute(sqlQuery_2,bindData_2)
                                 messege = {
@@ -422,7 +422,7 @@ async def progress_rate():
                             respone = jsonify(messege)
                             respone.status_code = 200
                         else:
-                            if total_pack_price >= 130000:
+                            if total_pack_price >= 120000:
                                 messege = {
                                 "amount" : result_1["title"],
                                 "result_code" : 246,
@@ -574,15 +574,15 @@ async def rate_return():
                             "total_invest" : round(investment_money,3),
                             "expacted_date_robot" : round(expacted_date_robot),
                             "total_robot" : round(robot_num),
+                            "total_revenue_ratio" : round((total_date_earned)/investment_money,2),
+                            "expacted_revenue_ratio" : round((expacted_date_earned)/investment_money,2),
                             "result_code" : 260,
                             "status" : 200,
                             "graph_data" : [{ "y" : investment_money , "x" : 0  },
-                                            { "y" : round(expacted_date_earned,3) , "x" : _expacted_date },
-                                            {  "y" : round(total_date_earned,3), "x" : 365}]
+                                            { "y" : round(expacted_date_earned + investment_money,3) , "x" : _expacted_date },
+                                            {  "y" : round(total_date_earned + investment_money,3), "x" : 365}]
                             
                             }
-            respone = jsonify(messege)
-            respone.status_code = 200
 
 
     except Exception as e:
