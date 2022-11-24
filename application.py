@@ -533,13 +533,15 @@ async def rate_return():
             effective_inf_level = influnece_lv_counter(_ref_num,pack_data["influence_lv"])
             #실제 영향을 끼치는 패키지 래밸을 계산
             total_earned_money = 0
-            
+            total_earned_money_1 = 0
+
             total_asset: int = 0
             total_asset = total_asset + investment_money
             num_of_code_500 = 0
             expacted_date_earned = 0
             total_date_earned = 0
             addtional_invest = 0
+            addtional_invest_1 = 0
             print("모든 변수선언에 성공했습니다.")
             #계산에 필요한 변수 선언
             print("for 문 진입")
@@ -559,13 +561,13 @@ async def rate_return():
                     expacted_date_robot = robot_num
                 else:
                     #print("expacteD_date else 구문 진입")
-                    total_earned_money = total_earned_money + (robot_num*20*0.7 + _ref_num * 0.6 * robot_num * 20  * 0.7 + num_of_code_500*0.6*20)*rm_price["usdt"]
-                    if total_earned_money >= 500:
-                        total_earned_money = total_earned_money - 500
+                    total_earned_money_1 = total_earned_money_1 + (robot_num*20*0.7 + _ref_num * 0.6 * robot_num * 20  * 0.7 + num_of_code_500*0.6*20)*rm_price["usdt"]
+                    if total_earned_money_1 >= 500:
+                        total_earned_money_1 = total_earned_money_1 - 500
                         num_of_code_500 = num_of_code_500 + 1
                         robot_num = robot_num + 1
-                        addtional_invest = addtional_invest + 500
-                    total_date_earned = expacted_date_earned+ addtional_invest + total_earned_money
+                        addtional_invest_1 = addtional_invest_1 + 500
+                    total_date_earned = expacted_date_earned+ addtional_invest_1 + total_earned_money_1
             
             
             messege = {
