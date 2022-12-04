@@ -148,7 +148,7 @@ async def decide_title():
             
             cursor.execute("SELECT * FROM tb_member WHERE idx = {}".format(_member_idx))
             num_of_ref = (cursor.fetchone())["referral_regular_count"]
-            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv)
+            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv) #영향력 래밸 계산
 
             bindData_1 = (_member_idx, real_inf_lv+1, _member_idx) 
             cursor.execute(sqlQuery_1, bindData_1)
@@ -356,7 +356,7 @@ async def progress_rate():
             
             cursor.execute("SELECT * FROM tb_member WHERE idx = {}".format(_member_idx))
             num_of_ref = (cursor.fetchone())["referral_regular_count"]
-            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv)
+            real_inf_lv = influnece_lv_counter(num_of_ref,influence_lv) #실재 영향력 래밸 적용
             
             bindData_1 = (_member_idx, real_inf_lv+1, _member_idx)
             cursor.execute(sqlQuery_1, bindData_1)
@@ -366,12 +366,12 @@ async def progress_rate():
           
             total_pack_price = 0
             for row in result_2:
-                total_pack_price = total_pack_price + row["packages_price"]
+                total_pack_price = total_pack_price + row["packages_price"] #영향력 래밸 적용.
                 print("total package price is ", total_pack_price)
                 print("number or referral is ", num_of_ref)
 
             if result_1["title"] == 0:
-                #추천인이 5인이 넘는지 (단 랜드 구매자한함.)
+                #추천인이 3인이 넘는지 (단 랜드 구매자한함.)
                 
                 if num_of_ref >= 3 and total_pack_price >= 5000:
                     messege = {
@@ -1268,14 +1268,15 @@ async def total_end_mining():
                         ON a.member_idx = b.owner_idx
                         WHERE member_idx = %s"""
         bindData_0 = (_member_idx)
-        sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
+        
+        sqlQuery_1 = """UPDATE tb_mining_history a 
                                 SET a.end_uttm = %s,
                                     a.end_dt = %s,
                                     a.total_working_time = %s,
-                                    a.mineral_amount = CASE WHEN (%s > 72000) THEN 20 ELSE (%s) END
-                                WHERE (a.group_idx = b.group_idx AND a.member_idx = %s );
+                                    a.mineral_amount = CASE WHEN (%s > 72000) THEN 20 ELSE %s END
+                                WHERE (a.group_idx = (SELECT group_idx FROM tb_mining WHERE member_idx = %s LIMIT 0,1))
                                     """
-                
+
         sqlQuery_1_1 = """SELECT sum(a.mineral_amount) x FROM tb_mining_history AS a
                         INNER JOIN tb_mining AS b
                         ON (a.robot_idx = b.robot_idx)
@@ -1302,32 +1303,45 @@ async def total_end_mining():
                         VALUES(%s, %s, %s, %s ,%s,%s);
                         """
         cursor.execute(sqlQuery_0,bindData_0)
+        print("마이닝 테이블에서 현재 채굴중인 해당 유저의 데이터 탐색")
+       
+
         Rows = cursor.fetchall()
         if Rows :
             if Rows[0]["land_type"] == 0:
+                print("1389")
                 cnt_robot = len(Rows)
-                
+                print("1391")
                 now_dt = datetime.datetime.now(timezone("Asia/Seoul"))
+                print("1393")
                 now_uttm = int(round(datetime.datetime.now(timezone("Asia/Seoul")).timestamp()))
+                print("1395")
                 start_uttm = Rows[0]["start_uttm"]
+                print("1397")
                 mineral_plus = ((now_uttm -start_uttm)/72000)*20 
-                
+                print("1399")
                                 
                 bindData_1 = (now_uttm, now_dt, now_uttm - start_uttm, now_uttm - start_uttm, mineral_plus, _member_idx)
                 bindData_1_1 = (_member_idx)
                 bindData_2 = (_member_idx)
                 bindData_3 = (now_dt, now_uttm, now_uttm - start_uttm, mineral_plus , _member_idx)
-                
+                print("1405")
                 cursor.execute(sqlQuery_1,bindData_1)
+                print("마이닝 히스토리에 해당 채굴 내역 업데이트 (랜드타입0)")
                 cursor.execute(sqlQuery_1_1,bindData_1_1)
+                print("채굴된는 미네랄 총량 계산 (랜드타입0)")
                 temp_row = cursor.fetchone()
                 mineral_insert = temp_row["x"]
                 bindData_4 = (_member_idx, mineral_insert, mineral_insert, now_dt, now_uttm , mineral_insert, mineral_insert, now_dt, now_uttm)
                 bindData_5 = (_member_idx, mineral_insert, _member_idx, now_dt, now_uttm, 0)
                 cursor.execute(sqlQuery_3,bindData_3)
+                print("tb_robot 업데이트 (랜드타입0)")
                 cursor.execute(sqlQuery_4,bindData_4)
+                print("tb_mineral 인서트/업데이트 (랜드타입0)")
                 cursor.execute(sqlQuery_5,bindData_5)
+                print("tb_mineral_history에  인서트/업데이트 (랜드타입0)")
                 cursor.execute(sqlQuery_2,bindData_2)
+                print("tb_mining 에서 해당 로봇들 삭제")
 
                 message = {
                     "status" : 200,
@@ -1343,12 +1357,12 @@ async def total_end_mining():
                 now_uttm = int(round(datetime.datetime.now(timezone("Asia/Seoul")).timestamp()))
                 start_uttm = Rows[0]["start_uttm"] ##애매함
                 mineral_plus = ((now_uttm -start_uttm)/72000)*2.5 
-                sqlQuery_1 = """UPDATE tb_mining_history a , tb_mining b
+                sqlQuery_1 = """UPDATE tb_mining_history a 
                                 SET a.end_uttm = %s,
                                     a.end_dt = %s,
                                     a.total_working_time = %s,
                                     a.mineral_amount = CASE WHEN (%s > 72000) THEN 2.5 ELSE (%s) END
-                                WHERE (a.group_idx = b.group_idx AND a.member_idx = %s );
+                                WHERE (a.group_idx = (SELECT group_idx FROM tb_mining WHERE member_idx = %s LIMIT 0,1))
                                     """
                 sqlQuery_3 = """UPDATE tb_robot x
                         SET x.working_yn = 0,
