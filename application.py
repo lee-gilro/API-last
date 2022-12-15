@@ -16,6 +16,7 @@ from pytz import timezone
 import datetime
 from eth_account import Account
 import secrets
+import time
 
 application = Flask(__name__)
 CORS(application)
@@ -44,30 +45,144 @@ async def root():
 
 
 def influnece_lv_counter(ref_count, influence_lv):
-    if influence_lv <= 7:
-        return min(ref_count,influence_lv)
-    elif influence_lv == 10:
-        if ref_count <= 7:
-            return ref_count
-        else:
-            return influence_lv
-    elif influence_lv == 13:
-        if ref_count <= 7:
-            return ref_count
-        elif ref_count == 8:
-            return 10
-        else:
-            return influence_lv
-    else:
-        if ref_count <= 7:
-            return ref_count
-        elif ref_count == 8:
-            return 10
-        elif ref_count == 9:
-            return 13
-        else:
-            return influence_lv
+    if ref_count == 0:
+        inf_lv = 0
+    elif ref_count == 1:
+        inf_lv = 1
+    elif ref_count == 2:
+        inf_lv = 3
+    elif ref_count == 3:
+        if influence_lv <= 7:
+            inf_lv = influence_lv
+        elif influence_lv > 7:
+            inf_lv = 7
+    elif ref_count == 4:
+        if influence_lv <= 13:
+            inf_lv = influence_lv
+        elif influence_lv > 13:
+            inf_lv = 13
+    elif ref_count == 5:
+        inf_lv = influence_lv
+    return inf_lv
 
+@application.route('/all_start_mining', methods=['POST'])
+async def all_start_mining():
+
+    API_HOST = "http://127.0.0.1:5000"
+    url = API_HOST + "/start_mining_all"
+    headers = {'Content-Type': 'application/json', 'charset': 'UTF-8', 'Accept': '*/*'}
+    try:
+        _json = request.json
+        _start_idx = _json['start_idx']
+        _end_idx = _json["end_idx"]
+
+        for i in range(_start_idx, _end_idx+1):
+
+            body = {
+                "member_idx": i
+            }
+            response = requests.post(url, headers=headers, data=json.dumps(body, ensure_ascii=False, indent="\t"))
+            print("response status %r" % response.status_code)
+            print("response text %r" % response.text)
+            time.sleep(0.3)
+        massage = {
+                'status' : 200,
+                'result_code' : 254,
+                "msg" : "good!"
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
+        
+    except Exception as ex:
+        massage = {
+                'status' : 200,
+                'result_code' : 255,
+                "msg" : ex
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        print(ex)
+   
+
+@application.route('/all_end_mining', methods=['POST'])
+async def all_end_mining():
+
+    API_HOST = "http://127.0.0.1:5000"
+    url = API_HOST + "/end_mining_all"
+    headers = {'Content-Type': 'application/json', 'charset': 'UTF-8', 'Accept': '*/*'}
+    try:
+        _json = request.json
+        _start_idx = _json['start_idx']
+        _end_idx = _json["end_idx"]
+
+        for i in range(_start_idx, _end_idx+1):
+
+            body = {
+                "member_idx": i
+            }
+            response = requests.post(url, headers=headers, data=json.dumps(body, ensure_ascii=False, indent="\t"))
+            print("response status %r" % response.status_code)
+            print("response text %r" % response.text)
+            time.sleep(0.3)
+        massage = {
+                'status' : 200,
+                'result_code' : 256,
+                "msg" : "good!"
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
+        
+    except Exception as ex:
+        massage = {
+                'status' : 200,
+                'result_code' : 257,
+                "msg" : ex
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        print(ex)
+
+@application.route('/settlement_all', methods=['POST'])
+async def settlement_all():
+
+    API_HOST = "http://127.0.0.1:5000"
+    url = API_HOST + "/settlement"
+    headers = {'Content-Type': 'application/json', 'charset': 'UTF-8', 'Accept': '*/*'}
+    try:
+        _json = request.json
+        _start_idx = _json['start_idx']
+        _end_idx = _json["end_idx"]
+
+        for i in range(_start_idx, _end_idx+1):
+
+            body = {
+                "member_idx": i
+            }
+            response = requests.post(url, headers=headers, data=json.dumps(body, ensure_ascii=False, indent="\t"))
+            print("response status %r" % response.status_code)
+            print("response text %r" % response.text)
+            time.sleep(0.3)
+        massage = {
+                'status' : 200,
+                'result_code' : 266,
+                "msg" : "good!"
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        return respone
+        
+    except Exception as ex:
+        massage = {
+                'status' : 200,
+                'result_code' : 267,
+                "msg" : ex
+                }
+        respone = jsonify(massage)
+        respone.status_code = 200
+        print(ex)
+        
 @application.route('/decide_title', methods=['POST'])
 async def decide_title():
     try:        
