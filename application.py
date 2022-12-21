@@ -33,7 +33,7 @@ mysql.init_app(application)
 async def root():
     try:        
         
-        respone = jsonify('successfully UPDATED')
+        respone = jsonify('hey!')
         respone.status_code = 200
         
         
