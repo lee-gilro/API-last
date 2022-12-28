@@ -61,7 +61,7 @@ def influnece_lv_counter(ref_count, influence_lv):
             inf_lv = influence_lv
         elif influence_lv > 13:
             inf_lv = 13
-    elif ref_count == 5:
+    elif ref_count >= 5:
         inf_lv = influence_lv
     return inf_lv
 
