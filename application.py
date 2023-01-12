@@ -1050,12 +1050,12 @@ async def next_package():
                     print("현재의 influence lv 는 ", true_inf_lv)
                     
                     total_robot = int(result_1_1["mobile_suite_cnt"])
-                    price_per_month_by_mining = int(total_robot) * float(rm_price) * 30 * 20 * 0.7
+                    price_per_month_by_mining = int(total_robot) * float(rm_price) * 30 * 20 * 0.9
                     print("마이닝에 의한 수당은 ", price_per_month_by_mining)
                     print("해당 인플루언스 래밸일때, 나는 {} 까지 수당을 받을 수 있다.".format(len(next_pack)))
                     for row in next_pack:
                         print("for 구문 진입")
-                        row_income = row["mobile_suite_cnt"] * rm_price * 30 * 20 * 0.7
+                        row_income = row["mobile_suite_cnt"] * rm_price * 30 * 20 * 0.9
                         
                         if row["title"] > user_title:
                             row_income = row_income * 0.5
@@ -1108,7 +1108,7 @@ async def next_package():
                     respone.status_code = 200
                 else:
                     price_per_month = 0
-                    price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.7
+                    price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.9
                     total_add_income = round(price_per_month + price_per_month_by_mining,3)
                     messege = {
                             "amount" : total_add_income,
@@ -1121,7 +1121,7 @@ async def next_package():
                     respone.status_code = 200
             else:
                 price_per_month = 0
-                price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.7
+                price_per_month_by_mining = result_1_1["mobile_suite_cnt"] * float(rm_price) * 30 * 20 * 0.9
                 total_add_income = round(price_per_month + price_per_month_by_mining,3)
                 messege = {
                             "amount" : total_add_income,
@@ -1228,8 +1228,8 @@ async def settlement():
                     group_idx = cursor.fetchone()["nextval(sq_group_stl)"]
                     print("group idx is ", group_idx)
                     _mineral_start = user_info["mineral_amount"] 
-                    _mineral_amount = user_info["mineral_amount"]*0.7
-                    _fee_amount = user_info["mineral_amount"]*0.7
+                    _mineral_amount = user_info["mineral_amount"]*0.9
+                    _fee_amount = user_info["mineral_amount"]*0.9
                     _title = user_info["title"]
                     _ref_enery = user_info["refining_energy"]
                 
@@ -1779,6 +1779,261 @@ async def start_mining():
         conn.close()  
         return respone
 
+@application.route('/support', methods=['POST'])
+async def support():
+    now_dt = datetime.datetime.now(timezone("Asia/Seoul"))
+    now_uttm = int(round(datetime.datetime.now(timezone("Asia/Seoul")).timestamp()))
+    #맴버 idx 까지 받아서 2차검증필요
+    try:        
+        _json = request.json
+        _member_idx = _json['member_idx']
+        _price = _json["price"]
+	
+        if _member_idx and request.method == 'POST':
+            conn = mysql.connect()
+            cursor = conn.cursor(pymysql.cursors.DictCursor)
+            sqlQuery_s = """select nextval(sq_group_stl)"""
+            cursor.execute(sqlQuery_s)
+            #인덱스 올려준다.
+            group_idx = cursor.fetchone()["nextval(sq_group_stl)"]
+            sqlQuery_0 = """SELECT * FROM (SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title , lvl, ord) AS (
+                            SELECT     member_idx,
+                                        member_id,
+                                        parent_idx,
+                                        title,                              
+                                        1 as lvl,
+                                        ord
+                            FROM       tb_org_chart
+                            WHERE      member_idx = %s
+                            UNION ALL
+                            SELECT     p.member_idx,
+                                        p.member_id,
+                                        p.parent_idx,
+                                        p.title,
+                                        x.lvl + 1 lvl,
+                                        p.ord
+                            FROM       tb_org_chart p
+                            INNER JOIN cte x
+                                    on p.member_idx = x.parent_idx
+                            )
+                            SELECT * FROM cte 
+                            ) a
+                            JOIN tb_land b
+                            ON a.member_idx = b.owner_idx 
+                            ) AS k
+                            INNER JOIN tb_member AS j
+                            ON k.member_idx = j.idx
+                            ORDER BY k.member_idx DESC;"""
+            sqlQuery_1 = """SELECT sum(d.packages_price) FROM (SELECT * FROM (WITH RECURSIVE cte (member_idx, member_id, parent_idx , title ,ord, lvl) AS (
+                            SELECT     member_idx,
+                                        member_id,
+                                        parent_idx,
+                                        title,
+                                        ord,
+                                        1 as lvl
+                            FROM       tb_org_chart
+                            WHERE      member_idx = (SELECT member_idx FROM tb_org_chart 
+                            WHERE parent_idx = (SELECT parent_idx FROM tb_org_chart WHERE member_idx = %s) AND ord = %s)
+                            UNION ALL
+                            SELECT     p.member_idx,
+                                        p.member_id,
+                                        p.parent_idx,
+                                        p.title,  
+                                        p.ord,
+                                        x.lvl + 1 lvl
+                            FROM       tb_org_chart p
+                            INNER JOIN cte x
+                                    on p.parent_idx = x.member_idx
+                            )
+                            SELECT * FROM cte 
+                            ) a
+                            JOIN tb_land b
+                            ON a.member_idx = b.owner_idx
+                            ORDER BY a.member_idx DESC) c 
+                            JOIN tb_info_packages d
+                            on c.refiner_lv = d.refiner_type
+                            ;"""
+            sqlQuery_2 = """UPDATE tb_point
+                            SET point = point + %s,
+                                mod_dt = %s,
+                                get_point = get_point + %s
+                            WHERE member_idx = %s
+                                                ;"""
+            sqlQuery_3 = """INSERT INTO tb_point_history(member_idx, send_member_idx, point_cd, point, create_ut, create_dt, grp_idx) 
+                                    VALUES(%s, %s, %s, %s, %s, %s, %s);"""
+            sqlQuery_4 = """UPDATE tb_land
+                            SET refining_energy = CASE WHEN refining_energy - %s < 0 THEN 0 ELSE refining_energy - %s END,
+                                update_dt = %s
+                            WHERE owner_idx = %s"""                                                                                                                                                                               
+            #처음에 나오는 멤버는 이제 들어갈 맴버기때문에 제외하고, 
+            
+            
+            
+            bindData_0 = (_member_idx)
+            cursor.execute(sqlQuery_0,bindData_0)
+            Rows = cursor.fetchall()
+            print("input member", _member_idx)
+            print("input price", _price)
+            K = []
+            if Rows:
+                print("처음꺼 진입 성공")
+                for i in Rows:
+                    print(i["member_idx"])
+                    print("첫 for 문 진입 성공")
+                    if i["parent_idx"] != 1:
+                        print("해당 맴버의 parent_idx 는 ", i["parent_idx"])
+                        if i["ord"] == 0:
+                            # 각 i 들은 전부 신규가 들어온 라인의 상위 라인이다.
+                            # i 회원이 i+1 회원의 좌측에 위치한다. 
+                            print("좌측")
+                            bindData_1_left = (i["member_idx"],0)
+                            bindData_1_right = (i["member_idx"],1)
+                            
+                            cursor.execute(sqlQuery_1,bindData_1_left)
+                            left_volume = cursor.fetchone()
+                            left_volume = left_volume["sum(d.packages_price)"]
+                            print("좌실적", left_volume)
+                            if left_volume == None:
+                                left_volume = 0
+                            
+                            cursor.execute(sqlQuery_1,bindData_1_right)
+                            right_volume = cursor.fetchone()
+                            right_volume = right_volume["sum(d.packages_price)"]
+                            
+                            if right_volume == None:
+                                right_volume = 0
+                            print("우실적", right_volume)
+                            if left_volume <= right_volume:
+                                if left_volume + _price <= right_volume:
+                                    #_price 만큼 
+                                    #해당 맴버는 소실적 후원을 받는다.
+                                    K.append([i["parent_idx"],_price])
+                                    #후원 받을 아이디, 후원 수당으로 적용될 금액
+                                elif left_volume + _price > right_volume:
+                                    #후원금액이 들어갈때 대소실적이 변경 되는경우
+                                    K.append([i["parent_idx"],left_volume + _price - right_volume])
+
+                        elif i["ord"] == 1:
+                            # 각 i 들은 전부 신규가 들어온 라인의 상위 라인이다.
+                            # i 회원이 i+1 회원의 우측에 위치한다. 
+                            print("우측")
+                            bindData_1_left = (i["member_idx"],0)
+                            bindData_1_right = (i["member_idx"],1)
+                            
+                            cursor.execute(sqlQuery_1,bindData_1_left)
+                            left_volume = cursor.fetchone()
+                            left_volume = left_volume["sum(d.packages_price)"]
+                            if left_volume == None:
+                                left_volume = 0
+                            print("좌실적", left_volume)
+                            cursor.execute(sqlQuery_1,bindData_1_right)
+                            right_volume = cursor.fetchone()
+                            
+                            right_volume = right_volume["sum(d.packages_price)"]
+
+                            print("우실적", right_volume)
+                            if left_volume >= right_volume:
+                                if left_volume >= right_volume + _price:
+                                    #_price 만큼 
+                                    #해당 맴버는 소실적 후원을 받는다.
+                                    K.append([i["parent_idx"],_price])
+                                    #후원 받을 아이디, 후원 수당으로 적용될 금액
+                                elif left_volume  < right_volume + _price:
+                                    #후원금액이 들어갈때 대소실적이 변경 되는경우
+                                    K.append([i["parent_idx"],right_volume + _price - left_volume])
+                    else:
+                        pass
+                #K 집합 완성 <= 수당을 받아야하는 집합. (가장 꼭대기 까지 갔을때 )
+                num_of_sup = len(K)
+                print(K)
+                effect_support = 0
+                bindData_2 = []
+                bindData_3 = []
+                bindData_4 = []
+                if num_of_sup >= 2:
+                    print("후원을 받을 인원수가 2명 이상이다.")
+                    # 수당을 받을 인원이 2명 이상이다.
+                    # q2 : 포인트 , 데이트, 포인트 , 맴버 인텍스
+                    # q3 : 후원받을 맴버, 진입하는 구자 맴버, 포인트코드 , 포인트 , ut, dt , grp_idx
+                    # q4 : 리파이닝 에너지(포인트), 리파이닝 에너지(포인트), dt ,
+                    num = 0
+                    for k in K:
+                       
+                        if k == K[0]:
+                            num = num + 1
+                            print("해당 맴버는 신규로 들어오는 회원의 직대에 존재한다.")
+                            print(" {} 번째".format(num))
+                            effect_support = round(k[1] * 0.15 * 0.5 / 0.057, 3) # 이만큼의 후원 수당을 받는다.
+                            bindData_2.append((effect_support, now_dt, effect_support, k[0]))
+                            bindData_3.append((k[0],_member_idx,"support",effect_support, now_uttm, now_dt,group_idx))
+                            bindData_4.append((effect_support,effect_support,now_dt,k[0]))
+                        else:
+                            
+                            num = num + 1
+                            print(" {} 번째".format(num))
+                            effect_support = round(k[1] * 0.15 * 0.5 * (1/(num_of_sup-1)) / 0.057,3) 
+                            bindData_2.append((effect_support, now_dt, effect_support, k[0]))
+                            bindData_3.append((k[0],_member_idx,"support",effect_support, now_uttm, now_dt,group_idx))
+                            bindData_4.append((effect_support,effect_support,now_dt,k[0]))
+                elif num_of_sup == 1:
+                    print("후원을 받는 인원이 유일하다.")
+                    for k in K:
+                        effect_support = round(k[1] * 0.15/0.057,3)
+                        bindData_2.append((effect_support, now_dt, effect_support, k[0]))
+                        bindData_3.append((k[0],_member_idx,"support",effect_support, now_uttm, now_dt,group_idx))
+                        bindData_4.append((effect_support,effect_support,now_dt,k[0]))
+                cursor.executemany(sqlQuery_2,bindData_2)
+                cursor.executemany(sqlQuery_3,bindData_3)
+                cursor.executemany(sqlQuery_4,bindData_4)
+                message = {
+                        "status" : 200,
+                        "amount" : num_of_sup,
+                        "result_code" : 270,
+                        "msg" : "successfully supported"
+                        }
+                respone = jsonify(message)
+                respone.status_code = 200
+                    
+                    # tb_point, tb_point_history, tb_land 내용 업데이트 필요.
+                    
+
+                    #K = [수당 받아야하는 유저] 들에 들어갈 i 들을 pick 해야함.
+
+                    
+            else:
+                message = {
+                        "status" : 200,
+                        "amount" : num_of_sup,
+                        "result_code" : 270,
+                        "msg" : "there is no support"
+                        }
+                respone = jsonify(message)
+                respone.status_code = 200
+        else:
+            message = {
+                    "status" : 200,
+                    "amount" : num_of_sup,
+                    "result_code" : 270,
+                    "msg" : "fail to request"
+                    }
+            respone = jsonify(message)
+            respone.status_code = 200        
+    except Exception as e:
+        conn.rollback()
+        message = {
+                        "status" : 200,
+                        "result_code" : 270,
+                        "msg" : "fail"
+                        }
+        respone = jsonify(message)
+        respone.status_code = 200
+        
+        print(e)
+    finally:
+        conn.commit()
+        cursor.close() 
+        conn.close()  
+        return respone
 
 
 @application.errorhandler(404)
